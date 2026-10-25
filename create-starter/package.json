@@ -1,0 +1,48 @@
+{
+  "name": "@bts-soft/create-starter",
+  "version": "1.0.1",
+  "author": "Omar Ahmed Sabry",
+  "description": "Production-ready NestJS 12 starter template: GraphQL (Apollo, code-first), TypeORM + PostgreSQL, Redis cache and sessions, JWT auth with refresh-token rotation and blacklisting, RBAC, Google OAuth 2.0, sliding-window rate limiting, i18n (en/ar), structured logging with trace IDs, Prometheus metrics, health probes, and isolated Docker Compose stacks for development, test, staging and production.",
+  "private": true,
+  "license": "Apache-2.0",
+  "keywords": [
+    "nestjs",
+    "starter",
+    "template",
+    "boilerplate",
+    "graphql",
+    "apollo",
+    "typeorm",
+    "postgresql",
+    "redis",
+    "jwt",
+    "rbac",
+    "oauth",
+    "google-oauth",
+    "rate-limiting",
+    "i18n",
+    "prometheus",
+    "docker",
+    "vitest",
+    "typescript",
+    "esm"
+  ],
+  "type": "module",
+  "bin": {
+    "create-starter": "./bin/create-starter.js"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ],
+  "dependencies": {
+    "degit": "^2.8.4"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

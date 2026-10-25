@@ -11,14 +11,22 @@ import { GraphQLResponseInterceptor } from './common/interceptors/graphql-respon
 import { AppResolver } from './app.resolver.js';
 import { MetricsInterceptor } from './common/metrics/interceptor/metrics.interceptor.js';
 
+// import { createObserveModule } from '@nestjs/observe';
+// export const { ObserveModule, ObserveInstrument } = createObserveModule();
+
 @Module({
   imports: [
-    CommonModule,
+    // ObserveModule.forRoot({
+    //   appKey: 'YOUR_APP_KEY',
+    //   appSecret: 'YOUR_APP_SECRET',
+    //   serviceId: 'my-project',
+    // }),
 
     LoggingModule,
     MetricsModule,
     AutomationModule,
 
+    CommonModule,
     AuthModule,
     UserModule,
   ],
