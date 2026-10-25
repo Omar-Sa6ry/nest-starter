@@ -8,21 +8,45 @@ import path from 'node:path';
 const TEMPLATE = 'Omar-Sa6ry/nest-starter';
 const validName = (name) => /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name) && name !== '.' && name !== '..';
 
-async function replaceInFile(filePath, replacements) {
-  try {
-    let content = await readFile(filePath, 'utf8');
-    let changed = false;
-    for (const [from, to] of replacements) {
-      if (content.includes(from)) {
-        content = content.replaceAll(from, to);
-        changed = true;
+const TEXT_EXTENSIONS = new Set([
+  '.ts', '.js', '.mjs', '.cjs', '.json', '.yml', '.yaml',
+  '.md', '.env', '.development', '.test', '.staging', '.production',
+  '.example', '.conf', '.tmpl', '.sh', '.gql', '.graphql', ''
+]);
+
+const IGNORED_DIRS = new Set([
+  'node_modules', '.git', 'dist', 'coverage'
+]);
+
+async function processDirectory(dirPath, replacements) {
+  const entries = await readdir(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      if (!IGNORED_DIRS.has(entry.name)) {
+        await processDirectory(fullPath, replacements);
+      }
+    } else if (entry.isFile()) {
+      const ext = path.extname(entry.name).toLowerCase();
+      // Allow known text extensions or files without extension like Makefile
+      if (TEXT_EXTENSIONS.has(ext) || entry.name === 'Makefile') {
+        try {
+          let content = await readFile(fullPath, 'utf8');
+          let changed = false;
+          for (const [from, to] of replacements) {
+            if (content.includes(from)) {
+              content = content.replaceAll(from, to);
+              changed = true;
+            }
+          }
+          if (changed) {
+            await writeFile(fullPath, content, 'utf8');
+          }
+        } catch {
+          // ignore unreadable/binary files
+        }
       }
     }
-    if (changed) {
-      await writeFile(filePath, content, 'utf8');
-    }
-  } catch {
-    // If file doesn't exist or cannot be read, ignore
   }
 }
 
@@ -33,18 +57,14 @@ async function customizeProject(target, projectName) {
   // 1. Remove create-starter directory from cloned project
   await rm(path.join(target, 'create-starter'), { recursive: true, force: true });
 
-  // 2. Update package.json
-  const packagePath = path.join(target, 'package.json');
-  try {
-    const packageJson = JSON.parse(await readFile(packagePath, 'utf8'));
-    packageJson.name = cleanName;
-    await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
-  } catch {
-    // ignore
-  }
-
-  // 3. Replacements in configuration and docker files
+  // 2. Comprehensive replacements across all files
   const replacements = [
+    ['@bts-soft/nest-starter', cleanName],
+    ['Nest Starter', projectName],
+    ['nest-starter-alerts', `${cleanName}-alerts`],
+    ['nest_starter_test_db', `${dbName}_test_db`],
+    ['nest_starter_staging', `${dbName}_staging`],
+    ['nest_starter_db', `${dbName}_db`],
     ['nest-starter-dev', `${cleanName}-dev`],
     ['nest-starter-test', `${cleanName}-test`],
     ['nest-starter-staging', `${cleanName}-staging`],
@@ -54,32 +74,24 @@ async function customizeProject(target, projectName) {
     ['starter-staging-', `${cleanName}-staging-`],
     ['starter-prod-', `${cleanName}-prod-`],
     ['nest-starter/alertmanager-discord', `${cleanName}/alertmanager-discord`],
-    ['nest_starter_db', `${dbName}_db`],
-    ['nest-starter-alerts', `${cleanName}-alerts`],
     ["service: 'nest-starter'", `service: '${cleanName}'`],
+    ['"service": "nest-starter"', `"service": "${cleanName}"`],
+    ["toBe('nest-starter')", `toBe('${cleanName}')`],
     ['job_name: nest-starter', `job_name: ${cleanName}`],
     ["job_name: 'nest-starter'", `job_name: '${cleanName}'`],
+    ['nest-starter', cleanName],
   ];
 
-  const filesToUpdate = [
-    path.join(target, 'infrastructure/docker/development/docker-compose.yml'),
-    path.join(target, 'infrastructure/docker/test/docker-compose.yml'),
-    path.join(target, 'infrastructure/docker/staging/docker-compose.yml'),
-    path.join(target, 'infrastructure/docker/production/docker-compose.yml'),
-    path.join(target, 'infrastructure/docker/common/prometheus/prometheus.yml'),
-    path.join(target, 'environments/.env.development'),
-    path.join(target, 'environments/.env.test'),
-    path.join(target, 'environments/.env.staging'),
-    path.join(target, 'environments/.env.production'),
-    path.join(target, 'src/common/automation/health.controller.ts'),
-    path.join(target, 'src/common/automation/health.controller.spec.ts'),
-    path.join(target, 'test/app.e2e-spec.ts'),
-    path.join(target, 'Makefile'),
-    path.join(target, 'Taskfile.yml'),
-  ];
+  await processDirectory(target, replacements);
 
-  for (const file of filesToUpdate) {
-    await replaceInFile(file, replacements);
+  // 3. Ensure package.json name is specifically cleanName
+  const packagePath = path.join(target, 'package.json');
+  try {
+    const packageJson = JSON.parse(await readFile(packagePath, 'utf8'));
+    packageJson.name = cleanName;
+    await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
+  } catch {
+    // ignore
   }
 }
 
