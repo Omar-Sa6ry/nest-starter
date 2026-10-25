@@ -1,0 +1,127 @@
+# Create an account (Public) — rate limit 5/min
+mutation {
+  register(
+    input: {
+      firstName: "Omar"
+      lastName: "Sabry"
+      email: "user1@gmail.com"
+      password: "ni7CV1a5+=2004"
+      phoneNumber: "+201137836172"
+      imageUrl: "https://example.com/avatar.png"
+    }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      accessToken
+      refreshToken
+      user {
+        id
+        firstName
+        lastName
+        email
+        phoneNumber
+        isActive
+        imageUrl
+        googleId
+        role
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+# LOGIN — email + password (Public) — rate limit 10/min
+mutation {
+  login(input: { email: "user1@gmail.com", password: "ni7CV1a5+=2004" }) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      accessToken
+      refreshToken
+      user {
+        id
+        firstName
+        lastName
+        email
+        phoneNumber
+        isActive
+        imageUrl
+        googleId
+        role
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+# REFRESH TOKEN — rotate the token pair (Public) — rate limit 10/min
+mutation {
+  refreshToken(input: { refreshToken: "YOUR_REFRESH_TOKEN_HERE" }) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      accessToken
+      refreshToken
+      user {
+        id
+        email
+        role
+      }
+    }
+  }
+}
+
+# Revoke session + blacklist access token (Authenticated)
+mutation {
+  logout {
+    statusCode
+    message
+    success
+    timeStamp
+    data
+  }
+}
+
+# FORGET PASSWORD — request a reset code (Public) — rate limit 3/min
+mutation {
+  forgetPassword(input: { email: "user1@gmail.com" }) {
+    statusCode
+    message
+    success
+    timeStamp
+  }
+}
+
+# RESET PASSWORD — consume the 6-digit code (Public) — rate limit 3/min
+mutation {
+  resetPassword(input: { token: "483920", passwordNew: "O12345hgtehight-" }) {
+    statusCode
+    message
+    success
+    timeStamp
+  }
+}
+
+# CHANGE PASSWORD — for the logged-in user (Authenticated) — source: user.resolver.ts
+mutation {
+  changePassword(
+    input: { passwordOld: "ni7CV1a5+=2004", passwordNew: "O12345hgtehight-" }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+  }
+}
+
+# Auth with Google
+http://localhost:3000/auth/google

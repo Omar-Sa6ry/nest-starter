@@ -1,0 +1,226 @@
+import { BadRequestException, HttpException, UnauthorizedException } from '@nestjs/common';
+import { ArgumentsHost } from '@nestjs/common';
+import { GraphQLError } from 'graphql';
+import { vi } from 'vitest';
+import { GraphQLExceptionFilter } from './graphql-exception.filter.js';
+
+describe('GraphQLExceptionFilter', () => {
+  let filter: GraphQLExceptionFilter;
+  let loggerSpy: ReturnType<typeof vi.spyOn>;
+  const host = { getType: () => 'graphql' } as unknown as ArgumentsHost;
+
+  const createHttpContext = () => {
+    const json = vi.fn();
+    const status = vi.fn(() => ({ json }));
+    const getResponse = vi.fn(() => ({ status }));
+    return {
+      json,
+      status,
+      getResponse,
+      host: {
+        getType: () => 'http',
+        switchToHttp: () => ({ getResponse }),
+      } as unknown as ArgumentsHost,
+    };
+  };
+
+  beforeEach(() => {
+    filter = new GraphQLExceptionFilter();
+    loggerSpy = vi.spyOn(filter['logger'], 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    loggerSpy.mockRestore();
+  });
+
+  it('converts UnauthorizedException into standard error envelope', () => {
+    const exception = new UnauthorizedException('missing token');
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result).toBeInstanceOf(GraphQLError);
+    expect(result.message).toBe('missing token');
+    expect(result.extensions).toMatchObject({
+      success: false,
+      statusCode: 401,
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+    expect(typeof result.extensions.timestamp).toBe('string');
+    expect(new Date(result.extensions.timestamp as string).toISOString()).toBe(
+      result.extensions.timestamp,
+    );
+    expect(loggerSpy).toHaveBeenCalledWith(
+      'GraphQL Exception: missing token',
+      exception.stack,
+    );
+  });
+
+  it('maps 400 status to BAD_REQUEST code', () => {
+    const result = filter.catch(new BadRequestException('bad input'), host) as GraphQLError;
+
+    expect(result.extensions).toMatchObject({
+      statusCode: 400,
+      code: 'BAD_REQUEST',
+    });
+    expect(result.message).toBe('bad input');
+  });
+
+  it('uses extensions.statusCode from a plain error', () => {
+    const exception = Object.assign(new Error('not found'), {
+      extensions: { statusCode: 404 },
+    });
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.extensions).toMatchObject({
+      statusCode: 404,
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+    expect(result.message).toBe('not found');
+    expect(loggerSpy).toHaveBeenCalledWith('GraphQL Exception: not found', exception.stack);
+  });
+
+  it('preserves provided extensions code', () => {
+    const exception = Object.assign(new Error('forbidden'), {
+      extensions: { code: 'FORBIDDEN', statusCode: 403 },
+    });
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.extensions).toMatchObject({
+      code: 'FORBIDDEN',
+      statusCode: 403,
+    });
+  });
+
+  it('defaults plain error to 500 and logs stack', () => {
+    const exception = new Error('kaboom');
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.message).toBe('kaboom');
+    expect(result.extensions).toMatchObject({
+      statusCode: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+    expect(loggerSpy).toHaveBeenCalledWith('GraphQL Exception: kaboom', exception.stack);
+  });
+
+  it('handles non-error object with status field', () => {
+    const exception = { status: 403, message: 'denied' };
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.message).toBe('denied');
+    expect(result.extensions).toMatchObject({ statusCode: 403, success: false });
+    expect(loggerSpy).toHaveBeenCalledWith('GraphQL Exception', JSON.stringify(exception));
+  });
+
+  it('handles non-error object exposing getResponse()', () => {
+    const exception = {
+      status: 422,
+      message: 'raw message',
+      getStatus: () => 422,
+      getResponse: () => ({ message: 'interpreted message' }),
+    };
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.message).toBe('interpreted message');
+    expect(result.extensions).toMatchObject({ statusCode: 422 });
+  });
+
+  it('handles object with response payload and statusCode', () => {
+    const exception = {
+      statusCode: 401,
+      message: 'raw',
+      response: { message: 'from response', error: 'Unauthorized' },
+    };
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.message).toBe('from response');
+    expect(result.extensions).toMatchObject({
+      statusCode: 401,
+    });
+  });
+
+  it('falls back to exception message when response has no message', () => {
+    const exception = { status: 400, message: 'fallback message', response: { foo: 'bar' } };
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.message).toBe('fallback message');
+    expect(result.extensions).toMatchObject({
+      statusCode: 400,
+      code: 'BAD_REQUEST',
+    });
+  });
+
+  it('uses exception message when HttpException response object has no message', () => {
+    const exception = new HttpException({ reason: 'teapot' }, 418);
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.message).toBe(exception.message);
+    expect(result.extensions).toMatchObject({ statusCode: 418, success: false });
+    expect(loggerSpy).toHaveBeenCalledWith(
+      `GraphQL Exception: ${exception.message}`,
+      exception.stack,
+    );
+  });
+
+  it('handles HttpException with string response', () => {
+    const exception = new HttpException('plain text', 500);
+
+    const result = filter.catch(exception, host) as GraphQLError;
+
+    expect(result.message).toBe('plain text');
+    expect(result.extensions).toMatchObject({
+      statusCode: 500,
+    });
+  });
+
+  it('falls back to default message when nothing is provided', () => {
+    const result = filter.catch({}, host) as GraphQLError;
+
+    expect(result.message).toBe('An unexpected error occurred');
+    expect(result.extensions).toMatchObject({ statusCode: 500, success: false });
+  });
+
+  it('handles non-object exception', () => {
+    const result = filter.catch('string failure', host) as GraphQLError;
+
+    expect(result.message).toBe('An unexpected error occurred');
+    expect(result.extensions).toMatchObject({ statusCode: 500 });
+    expect(loggerSpy).toHaveBeenCalledWith('GraphQL Exception', JSON.stringify('string failure'));
+  });
+
+it('writes JSON response with status code for HTTP context', () => {
+    const ctx = createHttpContext();
+    const result = filter.catch(new UnauthorizedException('missing token'), ctx.host);
+
+    expect(result).toBeUndefined();
+    expect(ctx.status).toHaveBeenCalledWith(401);
+    // the exact API error contract — nothing more
+    expect(ctx.json).toHaveBeenCalledWith({
+      success: false,
+      statusCode: 401,
+      message: 'missing token',
+      timestamp: expect.any(String),
+    });
+  });
+
+it('writes 500 envelope for plain error in HTTP context', () => {
+    const ctx = createHttpContext();
+    const result = filter.catch(new Error('kaboom'), ctx.host);
+
+    expect(result).toBeUndefined();
+    expect(ctx.status).toHaveBeenCalledWith(500);
+    expect(ctx.json).toHaveBeenCalledWith({
+      success: false,
+      statusCode: 500,
+      message: 'kaboom',
+      timestamp: expect.any(String),
+    });
+  });
+});

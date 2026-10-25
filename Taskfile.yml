@@ -1,0 +1,226 @@
+version: '3'
+
+vars:
+  ENV_DEV: environments/.env.development
+  ENV_TEST: environments/.env.test
+  ENV_STAGING: environments/.env.staging
+  ENV_PROD: environments/.env.production
+  APP_URL: http://localhost:3000
+  COMPOSE_DEV: -f infrastructure/docker/development/docker-compose.yml
+  COMPOSE_TEST: -f infrastructure/docker/test/docker-compose.yml
+  COMPOSE_STAGING: -f infrastructure/docker/staging/docker-compose.yml
+  COMPOSE_PROD: -f infrastructure/docker/production/docker-compose.yml
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  install:
+    desc: Install npm dependencies
+    cmds:
+      - npm install
+
+  ncu:
+    desc: Check for outdated packages (npm-check-updates)
+    cmds:
+      - npx npm-check-updates
+
+  update:
+    desc: Update package.json to latest versions & install
+    cmds:
+      - npx npm-check-updates -u
+      - npm install --legacy-peer-deps
+
+  dev:
+    desc: Start app in watch mode (environments/.env.development)
+    cmds:
+      - npm run start:dev
+
+  build:
+    desc: Build production bundle
+    cmds:
+      - nest build
+
+  deploy:
+    desc: Deploy the application
+    cmds:
+      - nest deploy
+
+  clean:
+    desc: Remove dist/, coverage/, tsbuildinfo
+    cmds:
+      - node -e "const fs=require('fs');for(const p of ['dist','coverage','tsconfig.build.tsbuildinfo'])fs.rmSync(p,{recursive:true,force:true})"
+
+  start:
+    desc: Start app (nest start)
+    cmds:
+      - nest start
+
+  start:dev:
+    desc: Start app in watch mode (environments/.env.development)
+    cmds:
+      - nest start --watch
+
+  start:debug:
+    desc: Start app in debug mode
+    cmds:
+      - nest start --debug --watch
+
+  start:prod:
+    desc: Start built app with NODE_ENV=production
+    env:
+      NODE_ENV: production
+    cmds:
+      - node dist/main
+
+  # Health & observability endpoints (GET, no auth)
+  health:
+    desc: curl http://localhost:3000/health — liveness + process stats
+    cmds:
+      - curl -sS {{.APP_URL}}/health
+
+  health:ready:
+    desc: curl http://localhost:3000/health/ready — readiness (PostgreSQL + Redis)
+    cmds:
+      - curl -sS {{.APP_URL}}/health/ready
+
+  metrics:
+    desc: curl http://localhost:3000/metrics — Prometheus metrics (text)
+    cmds:
+      - curl -sS {{.APP_URL}}/metrics
+
+  lint:
+    desc: Run oxlint
+    cmds:
+      - oxlint src/ test/
+
+  format:
+    desc: Format source with Prettier
+    cmds:
+      - prettier --write "src/**/*.ts" "test/**/*.ts"
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - vitest run
+
+  test:watch:
+    desc: Run unit tests in watch mode
+    interactive: true
+    cmds:
+      - vitest
+
+  test:cov:
+    desc: Run unit tests with coverage
+    cmds:
+      - vitest run --coverage
+
+  test:debug:
+    desc: Run unit tests in debug mode
+    cmds:
+      - vitest --inspect-brk --no-file-parallelism
+
+  test:e2e:
+    desc: Run e2e tests (brings up/down Docker test stack)
+    cmds:
+      - make docker-test-down && make docker-test-up && vitest run --config ./vitest.config.e2e.ts && make docker-test-down
+
+  # Docker: Development
+  docker:dev:up:
+    desc: Build & start dev stack (app + postgres + redis)
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} up -d --build
+
+  docker:dev:down:
+    desc: Stop dev stack
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} down
+
+  docker:dev:logs:
+    desc: Tail dev app logs
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} logs -f app
+
+  docker:dev:rebuild:
+    desc: Force rebuild dev app image
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} up -d --build --force-recreate app
+
+  # Docker: Test
+  docker:test:up:
+    desc: Build & start test stack (app + postgres + redis)
+    cmds:
+      - docker compose --env-file {{.ENV_TEST}} {{.COMPOSE_TEST}} up -d --build
+
+  docker:test:down:
+    desc: Stop test stack
+    cmds:
+      - docker compose --env-file {{.ENV_TEST}} {{.COMPOSE_TEST}} down
+
+  docker:test:logs:
+    desc: Tail test app logs
+    cmds:
+      - docker compose --env-file {{.ENV_TEST}} {{.COMPOSE_TEST}} logs -f app
+
+  # Docker: Staging
+  docker:staging:up:
+    desc: Build & start staging stack (nginx + app + db + redis + monitoring)
+    cmds:
+      - docker compose --env-file {{.ENV_STAGING}} {{.COMPOSE_STAGING}} up -d --build
+
+  docker:staging:down:
+    desc: Stop staging stack
+    cmds:
+      - docker compose --env-file {{.ENV_STAGING}} {{.COMPOSE_STAGING}} down
+
+  docker:staging:logs:
+    desc: Tail staging app logs
+    cmds:
+      - docker compose --env-file {{.ENV_STAGING}} {{.COMPOSE_STAGING}} logs -f app
+
+  # Docker: Production
+  docker:prod:up:
+    desc: Build & start production stack (nginx + app + db + redis)
+    cmds:
+      - docker compose --env-file {{.ENV_PROD}} {{.COMPOSE_PROD}} up -d --build
+
+  docker:prod:down:
+    desc: Stop production stack
+    cmds:
+      - docker compose --env-file {{.ENV_PROD}} {{.COMPOSE_PROD}} down
+
+  docker:prod:logs:
+    desc: Tail production app logs
+    cmds:
+      - docker compose --env-file {{.ENV_PROD}} {{.COMPOSE_PROD}} logs -f app
+
+  # Infra only
+  db:up:
+    desc: Start only postgres (dev)
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} up -d postgres
+
+  db:down:
+    desc: Stop postgres (dev)
+    cmds:
+      - docker compose {{.COMPOSE_DEV}} stop postgres
+
+  redis:up:
+    desc: Start only redis (dev)
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} up -d redis
+
+  redis:down:
+    desc: Stop redis (dev)
+    cmds:
+      - docker compose {{.COMPOSE_DEV}} stop redis
+
+  down:
+    desc: Stop ALL nest-starter docker resources
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} down
+      - docker compose --env-file {{.ENV_TEST}} {{.COMPOSE_TEST}} down
+      - docker compose --env-file {{.ENV_STAGING}} {{.COMPOSE_STAGING}} down
+      - docker compose --env-file {{.ENV_PROD}} {{.COMPOSE_PROD}} down

@@ -1,0 +1,168 @@
+name: nest-starter-dev
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: starter-dev-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-8080}:80"
+    volumes:
+      - ../common/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../common/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/development/Dockerfile
+    container_name: starter-dev-app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    volumes:
+      - ../../..:/usr/src/app
+      - app_node_modules:/usr/src/app/node_modules
+      - app_dist:/usr/src/app/dist
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      NODE_OPTIONS: "--max-old-space-size=2048"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-nest_starter_db}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_me}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 900s
+      retries: 5
+    mem_limit: 2g
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: starter-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-nest_starter_db}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${DB_NAME:-nest_starter_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: starter-dev-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: starter-dev-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../common/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    entrypoint: ["/bin/sh", "/usr/local/bin/docker-entrypoint.sh"]
+    environment:
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-http://alertmanager-discord:8080/webhook}
+    volumes:
+      - ../common/alertmanager/alertmanager.yml.tmpl:/etc/alertmanager/alertmanager.yml.tmpl:ro
+      - ../common/alertmanager/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
+      - alertmanager_dev_data:/alertmanager
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    depends_on:
+      - alertmanager-discord
+    restart: unless-stopped
+
+  alertmanager-discord:
+    build:
+      context: ../common/discord-relay
+    image: nest-starter/alertmanager-discord:local
+    environment:
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      DISCORD_USERNAME: ${DISCORD_USERNAME:-Nest Starter Alerts}
+      PORT: "8080"
+    ports:
+      - "${ALERTMANAGER_DISCORD_PORT:-8081}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # # Optional: NATS Message Broker
+  # nats:
+  #   image: nats:2-alpine
+  #   container_name: starter-dev-nats
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${NATS_PORT:-4222}:4222"
+  #     - "${NATS_MONITOR_PORT:-8222}:8222"
+  #   command: ["--jetstream", "--store_dir", "/data"]
+  #   volumes:
+  #     - nats_dev_data:/data
+
+  # # RabbitMQ Message Broker
+  # rabbitmq:
+  #   image: rabbitmq:3.13-management-alpine
+  #   container_name: starter-dev-rabbitmq
+  #   restart: unless-stopped
+  #   hostname: rabbitmq
+  #   ports:
+  #     - "${RABBITMQ_PORT:-5672}:5672"
+  #     - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+  #     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+  #   volumes:
+  #     - rabbitmq_dev_data:/var/lib/rabbitmq
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  alertmanager_dev_data:
+  app_node_modules:
+  app_dist:
+  nats_dev_data:
+  rabbitmq_dev_data:

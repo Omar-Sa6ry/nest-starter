@@ -1,0 +1,61 @@
+# Dependencies
+node_modules
+.npm
+.yarn
+
+# Build Output
+dist
+build
+coverage
+.nyc_output
+*.tsbuildinfo
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+environments/
+
+# Version Control / CI
+.git
+.github
+.gitlab-ci.yml
+.dockerignore
+.gitignore
+
+# Tests
+test
+**/*.spec.ts
+**/*.test.ts
+vitest.config*.ts
+
+# Documentation / scratch
+README.md
+docs
+api docs
+*.md
+notes.txt
+
+# Docker / Infrastructure (available on the host, not needed inside the image)
+infrastructure
+docker-compose*.yml
+Dockerfile*
+
+# IDE / Editor / OS
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Temporary
+.temp
+.tmp
+*.log
+
+# Prettier / lint config is not needed to build or run the image.
+# nest-cli.json IS needed (`nest build` / `nest start` run inside the image).
+.prettierrc
+oxlint.json
+.sisyphus

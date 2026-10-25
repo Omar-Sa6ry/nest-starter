@@ -1,0 +1,174 @@
+# GET MY PROFILE — the logged-in user (Authenticated)
+query {
+  getMyProfile {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      id
+      firstName
+      lastName
+      email
+      phoneNumber
+      isActive
+      imageUrl
+      googleId
+      role
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+# GET USER BY ID (Authenticated — requires VIEW_USER => admin)
+  getUser(id: "372342399391995648") {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      id
+      firstName
+      lastName
+      email
+      phoneNumber
+      isActive
+      imageUrl
+      googleId
+      role
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+# GET USERS — paginated list (Authenticated — requires VIEW_USER => admin)
+query {
+  getUsers(page: 1, limit: 11) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      paginationInfo {
+        totalItems
+        currentPage
+        nextPage
+      }
+      items {
+        id
+        firstName
+        lastName
+        email
+        phoneNumber
+        isActive
+        imageUrl
+        googleId
+        role
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+# UPDATE PROFILE — the logged-in user (Authenticated)
+mutation {
+  updateProfile(input: { firstName: "Ahmed", lastName: "Sabry" }) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      id
+      firstName
+      lastName
+      email
+      phoneNumber
+      isActive
+      imageUrl
+      googleId
+      role
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+# Update the avatar URL (Authenticated)
+mutation {
+  updateProfile(input: { imageUrl: "https://example.com/avatar.png" }) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      id
+      imageUrl
+      updatedAt
+    }
+  }
+}
+
+# PROMOTE TO ADMIN (Authenticated — requires EDIT_USER_ROLE => admin)
+mutation {
+  promoteUserToAdmin(id: "372389586246045696") {
+    statusCode
+    message
+    success
+    timeStamp
+    data
+  }
+}
+
+# UPDATE USER ROLE (Authenticated — requires EDIT_USER_ROLE => admin)
+mutation {
+  updateUserRole(id: "372389586246045696", role: "admin") {
+    statusCode
+    message
+    success
+    timeStamp
+    data
+  }
+}
+
+# Demote an admin back to a regular user
+mutation {
+  updateUserRole(id: "372389586246045696", role: "user") {
+    statusCode
+    message
+    success
+    timeStamp
+    data
+  }
+}
+
+# TOGGLE ACTIVE FLAG (Authenticated — requires DELETE_USER => admin)
+mutation {
+  toggleUserActive(id: "372389950454239232", isActive: false) {
+    statusCode
+    message
+    success
+    timeStamp
+    data
+  }
+}
+
+# 8. DELETE USER (Authenticated — requires DELETE_USER => admin)
+mutation {
+  deleteUser(id: "372389780962414592") {
+    statusCode
+    message
+    success
+    timeStamp
+    data
+  }
+}
+
+# CHANGE PASSWORD — lives in the user module, documented in ./auth.graphql
+mutation {
+  changePassword(input: { passwordOld: "...", passwordNew: "..." }) {
+    statusCode message success timeStamp
+  }
+}

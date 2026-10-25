@@ -1,0 +1,102 @@
+name: nest-starter-test
+
+services:
+  app:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/test/Dockerfile
+    container_name: starter-test-app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      PORT: 3000
+      NODE_ENV: test
+      DB_HOST: postgres
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-nest_starter_test_db}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: test_jwt_secret
+      CORS_ORIGIN: http://localhost:8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: starter-test-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-nest_starter_test_db}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5434}:5432"
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${DB_NAME:-nest_starter_test_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: starter-test-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy noeviction
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6378}:6379"
+    volumes:
+      - test_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NATS Message Broker
+  nats:
+    image: nats:2-alpine
+    container_name: starter-test-nats
+    restart: unless-stopped
+    command: ["--jetstream", "--store_dir", "/data"]
+    volumes:
+      - nats_test_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: starter-test-rabbitmq
+    restart: unless-stopped
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_test_data:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  test_postgres_data:
+  test_redis_data:
+  nats_test_data:
+  rabbitmq_test_data:

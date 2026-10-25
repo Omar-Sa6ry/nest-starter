@@ -1,0 +1,26 @@
+# Check that the GraphQL API is up and serving (Public)
+query {
+  pingApp {
+    statusCode
+    message
+    success
+    timeStamp
+    data
+  }
+}
+
+# Raw HTTP equivalents
+#
+# GraphQL ping
+# curl -X POST http://localhost:3000/graphql \
+#   -H "Content-Type: application/json" \
+#   -d '{ "query": "{ pingApp { success statusCode message timeStamp data } }" }'
+#
+# Liveness (process is running)
+# curl http://localhost:3000/health
+#
+# Readiness (PostgreSQL + Redis reachable) — 200 UP / 503 DOWN
+# curl http://localhost:3000/health/ready
+#
+# Prometheus metrics (no auth)
+# curl http://localhost:3000/metrics
