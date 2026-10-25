@@ -5,7 +5,7 @@ import { stdin, stdout } from 'node:process';
 import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const TEMPLATE = 'bts-soft/nest-starter';
+const TEMPLATE = 'Omar-Sa6ry/nest-starter';
 const validName = (name) => /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name) && name !== '.' && name !== '..';
 
 async function main() {

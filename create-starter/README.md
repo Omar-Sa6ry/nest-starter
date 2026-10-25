@@ -1,6 +1,6 @@
 # @bts-soft/create-starter
 
-Create a project from the [`bts-soft/nest-starter`](https://github.com/bts-soft/nest-starter) GitHub template:
+Create a project from the [`Omar-Sa6ry/nest-starter`](https://github.com/Omar-Sa6ry/nest-starter) GitHub template:
 
 ```sh
 npm create @bts-soft/starter my-app
