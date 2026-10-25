@@ -2,11 +2,86 @@
 import degit from 'degit';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
-import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const TEMPLATE = 'Omar-Sa6ry/nest-starter';
 const validName = (name) => /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name) && name !== '.' && name !== '..';
+
+async function replaceInFile(filePath, replacements) {
+  try {
+    let content = await readFile(filePath, 'utf8');
+    let changed = false;
+    for (const [from, to] of replacements) {
+      if (content.includes(from)) {
+        content = content.replaceAll(from, to);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await writeFile(filePath, content, 'utf8');
+    }
+  } catch {
+    // If file doesn't exist or cannot be read, ignore
+  }
+}
+
+async function customizeProject(target, projectName) {
+  const cleanName = projectName.toLowerCase();
+  const dbName = cleanName.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  // 1. Remove create-starter directory from cloned project
+  await rm(path.join(target, 'create-starter'), { recursive: true, force: true });
+
+  // 2. Update package.json
+  const packagePath = path.join(target, 'package.json');
+  try {
+    const packageJson = JSON.parse(await readFile(packagePath, 'utf8'));
+    packageJson.name = cleanName;
+    await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
+  } catch {
+    // ignore
+  }
+
+  // 3. Replacements in configuration and docker files
+  const replacements = [
+    ['nest-starter-dev', `${cleanName}-dev`],
+    ['nest-starter-test', `${cleanName}-test`],
+    ['nest-starter-staging', `${cleanName}-staging`],
+    ['nest-starter-prod', `${cleanName}-prod`],
+    ['starter-dev-', `${cleanName}-dev-`],
+    ['starter-test-', `${cleanName}-test-`],
+    ['starter-staging-', `${cleanName}-staging-`],
+    ['starter-prod-', `${cleanName}-prod-`],
+    ['nest-starter/alertmanager-discord', `${cleanName}/alertmanager-discord`],
+    ['nest_starter_db', `${dbName}_db`],
+    ['nest-starter-alerts', `${cleanName}-alerts`],
+    ["service: 'nest-starter'", `service: '${cleanName}'`],
+    ['job_name: nest-starter', `job_name: ${cleanName}`],
+    ["job_name: 'nest-starter'", `job_name: '${cleanName}'`],
+  ];
+
+  const filesToUpdate = [
+    path.join(target, 'infrastructure/docker/development/docker-compose.yml'),
+    path.join(target, 'infrastructure/docker/test/docker-compose.yml'),
+    path.join(target, 'infrastructure/docker/staging/docker-compose.yml'),
+    path.join(target, 'infrastructure/docker/production/docker-compose.yml'),
+    path.join(target, 'infrastructure/docker/common/prometheus/prometheus.yml'),
+    path.join(target, 'environments/.env.development'),
+    path.join(target, 'environments/.env.test'),
+    path.join(target, 'environments/.env.staging'),
+    path.join(target, 'environments/.env.production'),
+    path.join(target, 'src/common/automation/health.controller.ts'),
+    path.join(target, 'src/common/automation/health.controller.spec.ts'),
+    path.join(target, 'test/app.e2e-spec.ts'),
+    path.join(target, 'Makefile'),
+    path.join(target, 'Taskfile.yml'),
+  ];
+
+  for (const file of filesToUpdate) {
+    await replaceInFile(file, replacements);
+  }
+}
 
 async function main() {
   let projectName = process.argv[2];
@@ -49,10 +124,8 @@ async function main() {
       }
     }
     if (downloadError) throw downloadError;
-    const packagePath = path.join(target, 'package.json');
-    const packageJson = JSON.parse(await readFile(packagePath, 'utf8'));
-    packageJson.name = projectName.toLowerCase();
-    await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+    await customizeProject(target, projectName);
   } catch (error) {
     await rm(target, { recursive: true, force: true });
     console.error(`Could not download the template: ${error.message}`);
@@ -61,7 +134,7 @@ async function main() {
     return;
   }
 
-  console.log('\nProject created. Next steps:');
+  console.log('\nProject created successfully! Next steps:');
   console.log(`  cd ${projectName}`);
   console.log('  npm install');
   console.log('  npm run start:dev');
