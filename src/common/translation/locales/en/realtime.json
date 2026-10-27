@@ -1,0 +1,12 @@
+{
+  "UNAUTHORIZED": "Unauthorized websocket connection",
+  "RATE_LIMIT_EXCEEDED": "Websocket rate limit exceeded",
+  "VALIDATION_ERROR": "Validation failed for the received message",
+  "VALIDATION_REQUIRED": "The {property} field is required",
+  "VALIDATION_INVALID": "The {property} field is invalid",
+  "VALIDATION_MAX_LENGTH": "The {property} field exceeds its maximum length",
+  "INTERNAL_ERROR": "An internal realtime error occurred",
+  "INSUFFICIENT_PERMISSIONS": "Insufficient permissions to perform this realtime action",
+  "ROOM_JOINED": "Joined room successfully",
+  "ROOM_LEFT": "Left room successfully"
+}
