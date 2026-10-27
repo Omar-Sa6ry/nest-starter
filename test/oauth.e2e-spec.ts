@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, type ExecutionContext } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { OAuthService } from '../src/modules/auth/oauth/oauth.service.js';
@@ -24,8 +24,10 @@ describe('OAuth (e2e)', () => {
     })
       .overrideGuard(AuthGuard('google'))
       .useValue({
-        canActivate: (context: any) => {
-          const req = context.switchToHttp().getRequest();
+        canActivate: (context: ExecutionContext) => {
+          const req = context.switchToHttp().getRequest<{
+            user: typeof mockGoogleProfile;
+          }>();
           req.user = mockGoogleProfile;
           return true;
         },

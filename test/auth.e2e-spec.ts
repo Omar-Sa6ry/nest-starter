@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { AuthService } from '../src/modules/auth/auth.service.js';
 import { RegisterCommand } from '../src/modules/auth/commands/register.command.js';
 import { LoginCommand } from '../src/modules/auth/commands/login.command.js';
@@ -11,6 +11,14 @@ import type { IPasswordHasher, ITokenProvider, ISessionStore } from '../src/comm
 import { UserFactory } from '../src/modules/auth/factory/user.factory.js';
 import { Role } from '../src/common/constant/enum.constant.js';
 import { StructuredLogger } from '../src/common/logging/logger.service.js';
+import type { DataSource, Repository } from 'typeorm';
+import type { I18nService } from 'nestjs-i18n';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
+import type { User } from '../src/modules/user/entity/user.entity.js';
+import type {
+  IRedisAdapter,
+  INotificationAdapter,
+} from '../src/modules/auth/interfaces/IAuth.interface.js';
 
 describe('AuthService (e2e) - New Architecture', () => {
   let service: AuthService;
@@ -23,11 +31,17 @@ describe('AuthService (e2e) - New Architecture', () => {
   let mockTokenProvider: ITokenProvider;
   let mockSessionRepo: ISessionStore;
   let mockUserFactory: UserFactory;
-  let mockI18n: { t: ReturnType<typeof vi.fn> };
-  let mockRedis: Record<string, ReturnType<typeof vi.fn>>;
-  let mockDataSource: Record<string, ReturnType<typeof vi.fn>>;
-  let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
-  let mockNotificationService: { send: ReturnType<typeof vi.fn> };
+  let mockI18n: I18nService;
+  let mockRedis: {
+    get: Mock<IRedisAdapter['get']>;
+    set: Mock<IRedisAdapter['set']>;
+    del: Mock<IRedisAdapter['del']>;
+  };
+  let mockDataSource: DataSource;
+  let mockEventEmitter: EventEmitter2;
+  let mockNotificationService: {
+    send: Mock<INotificationAdapter['sendEmail']>;
+  };
 
   const sampleUser = {
     id: 'user-1',
@@ -79,17 +93,33 @@ describe('AuthService (e2e) - New Architecture', () => {
     mockUserFactory = {
       createUser: vi.fn().mockReturnValue(sampleUser),
     } as unknown as UserFactory;
-    mockI18n = { t: vi.fn().mockImplementation((key: string) => key) };
+    mockI18n = {
+      t: vi.fn().mockImplementation((key: string) => key),
+    } as unknown as I18nService;
     mockRedis = {
-      get: vi.fn(),
-      set: vi.fn().mockResolvedValue(undefined),
-      del: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn<IRedisAdapter['get']>(),
+      set: vi.fn<IRedisAdapter['set']>().mockResolvedValue(undefined),
+      del: vi.fn<IRedisAdapter['del']>().mockResolvedValue(undefined),
     };
     mockDataSource = {
-      transaction: vi.fn().mockImplementation(async (fn: any) => fn({ getRepository: () => mockUserRepo })),
+      transaction: vi
+        .fn<
+          (
+            run: (em: {
+              getRepository: () => typeof mockUserRepo;
+            }) => Promise<unknown>,
+          ) => Promise<unknown>
+        >()
+        .mockImplementation(async (run) =>
+          run({ getRepository: () => mockUserRepo }),
+        ),
+    } as unknown as DataSource;
+    mockEventEmitter = { emit: vi.fn() } as unknown as EventEmitter2;
+    mockNotificationService = {
+      send: vi
+        .fn<INotificationAdapter['sendEmail']>()
+        .mockResolvedValue(undefined),
     };
-    mockEventEmitter = { emit: vi.fn() };
-    mockNotificationService = { send: vi.fn().mockResolvedValue(undefined) };
 
     // Create commands with all dependencies
     const registerCommand = new RegisterCommand(
@@ -97,53 +127,61 @@ describe('AuthService (e2e) - New Architecture', () => {
       mockPasswordHasher,
       mockTokenProvider,
       mockSessionRepo,
-      mockDataSource as any,
-      mockI18n as any,
-      mockEventEmitter as any,
+      mockDataSource,
+      mockI18n,
+      mockEventEmitter,
       new StructuredLogger(),
     );
 
     const loginCommand = new LoginCommand(
-      mockUserRepo as any,
+      mockUserRepo as unknown as Repository<User>,
       mockPasswordHasher,
       mockTokenProvider,
       mockSessionRepo,
-      mockI18n as any,
-      mockEventEmitter as any,
+      mockI18n,
+      mockEventEmitter,
       new StructuredLogger(),
     );
 
     const forgetPasswordCommand = new ForgetPasswordCommand(
-      mockUserRepo as any,
-      { get: mockRedis.get, set: mockRedis.set, del: mockRedis.del } as any,
-      { sendEmail: mockNotificationService.send } as any,
-      mockI18n as any,
-      mockEventEmitter as any,
+      mockUserRepo as unknown as Repository<User>,
+      {
+        get: mockRedis.get,
+        set: mockRedis.set,
+        del: mockRedis.del,
+      } as unknown as IRedisAdapter,
+      { sendEmail: mockNotificationService.send },
+      mockI18n,
+      mockEventEmitter,
       new StructuredLogger(),
     );
 
     const resetPasswordCommand = new ResetPasswordCommand(
       mockPasswordHasher,
       mockSessionRepo,
-      { get: mockRedis.get, set: mockRedis.set, del: mockRedis.del } as any,
-      mockDataSource as any,
-      mockI18n as any,
-      mockEventEmitter as any,
+      {
+        get: mockRedis.get,
+        set: mockRedis.set,
+        del: mockRedis.del,
+      } as unknown as IRedisAdapter,
+      mockDataSource,
+      mockI18n,
+      mockEventEmitter,
       new StructuredLogger(),
     );
 
     const refreshTokenCommand = new RefreshTokenCommand(
-      mockUserRepo as any,
+      mockUserRepo as unknown as Repository<User>,
       mockTokenProvider,
       mockSessionRepo,
-      mockI18n as any,
+      mockI18n,
       new StructuredLogger(),
     );
 
     const logoutCommand = new LogoutCommand(
       mockTokenProvider,
       mockSessionRepo,
-      mockEventEmitter as any,
+      mockEventEmitter,
       new StructuredLogger(),
     );
 

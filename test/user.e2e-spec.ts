@@ -1,12 +1,23 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { UserService } from '../src/modules/user/user.service.js';
 import { DbUserService } from '../src/modules/user/db-user.service.js';
 import { Role } from '../src/common/constant/enum.constant.js';
 
+/**
+ * Structural mirror of the (module-private) `ICacheStore` interface the
+ * `UserService` constructor expects for its `CACHE_MANAGER` injection.
+ * Keeps every cache mock fully typed while satisfying the real contract.
+ */
+interface CacheStoreMock {
+  get: Mock<(key: string) => Promise<unknown>>;
+  set: Mock<(key: string, value: unknown, ttlSeconds?: number) => Promise<unknown>>;
+  del: Mock<(key: string) => Promise<unknown>>;
+}
+
 describe('UserService (e2e)', () => {
   let service: UserService;
   let mockDbUserService: DbUserService;
-  let mockCacheManager: Record<string, ReturnType<typeof vi.fn>>;
+  let mockCacheManager: CacheStoreMock;
 
   const sampleUser = {
     id: 'user-1',
@@ -39,9 +50,9 @@ describe('UserService (e2e)', () => {
     } as unknown as DbUserService;
 
     mockCacheManager = {
-      get: vi.fn(),
-      set: vi.fn(),
-      del: vi.fn(),
+      get: vi.fn<(key: string) => Promise<unknown>>(),
+      set: vi.fn<(key: string, value: unknown, ttlSeconds?: number) => Promise<unknown>>(),
+      del: vi.fn<(key: string) => Promise<unknown>>(),
     };
 
     service = new UserService(mockDbUserService, mockCacheManager);
