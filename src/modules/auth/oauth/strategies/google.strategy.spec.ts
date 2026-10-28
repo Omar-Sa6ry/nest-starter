@@ -1,9 +1,29 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ConfigService } from '@nestjs/config';
+import type { Profile } from 'passport-google-oauth20';
 import { GoogleStrategy } from './google.strategy.js';
 
 describe('GoogleStrategy', () => {
   let strategy: GoogleStrategy;
+
+  // Builds a fully-typed passport-google-oauth20 Profile. The strategy only
+  // reads id/displayName/emails/name/photos, but the Profile type requires
+  // provider/profileUrl/_raw/_json as well.
+  const buildProfile = (
+    overrides: Partial<Profile> & Pick<Profile, 'id' | 'displayName'>,
+  ): Profile => ({
+    provider: 'google',
+    profileUrl: 'https://example.com/profile',
+    _raw: '',
+    _json: {
+      iss: 'accounts.google.com',
+      aud: 'test-client-id',
+      sub: overrides.id,
+      iat: 0,
+      exp: 0,
+    },
+    ...overrides,
+  });
 
   beforeEach(() => {
     const mockConfigService = {
@@ -21,15 +41,15 @@ describe('GoogleStrategy', () => {
 
   describe('validate', () => {
     it('should correctly parse profile data with full names', async () => {
-      const mockProfile: any = {
+      const mockProfile: Profile = buildProfile({
         id: 'google-1',
         displayName: 'John Doe',
-        emails: [{ value: 'john@example.com' }],
+        emails: [{ value: 'john@example.com', verified: true }],
         name: {
           givenName: 'John',
           familyName: 'Doe',
         },
-      };
+      });
 
       const result = await strategy.validate(null, 'access', 'refresh', mockProfile);
 
@@ -44,11 +64,11 @@ describe('GoogleStrategy', () => {
     });
 
     it('should fallback to splitting displayName if name object is missing', async () => {
-      const mockProfile: any = {
+      const mockProfile: Profile = buildProfile({
         id: 'google-2',
         displayName: 'Jane Mary Watson',
-        emails: [{ value: 'jane@example.com' }],
-      };
+        emails: [{ value: 'jane@example.com', verified: true }],
+      });
 
       const result = await strategy.validate(null, 'access', 'refresh', mockProfile);
 
@@ -57,11 +77,11 @@ describe('GoogleStrategy', () => {
     });
 
     it('should return empty strings if emails are missing', async () => {
-      const mockProfile: any = {
+      const mockProfile: Profile = buildProfile({
         id: 'google-3',
         displayName: 'NoEmail User',
         emails: [],
-      };
+      });
 
       const result = await strategy.validate(null, 'access', 'refresh', mockProfile);
       expect(result.email).toBe('');

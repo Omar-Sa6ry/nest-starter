@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { RegisterCommand } from './commands/register.command.js';
@@ -8,15 +8,16 @@ import { ResetPasswordCommand } from './commands/reset-password.command.js';
 import { RefreshTokenCommand } from './commands/refresh-token.command.js';
 import { LogoutCommand } from './commands/logout.command.js';
 import { Role } from '../../common/constant/enum.constant.js';
+import type { AuthResult } from './interfaces/IAuthCommands.interface.js';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let mockRegisterCommand: RegisterCommand;
-  let mockLoginCommand: LoginCommand;
-  let mockForgetPasswordCommand: ForgetPasswordCommand;
-  let mockResetPasswordCommand: ResetPasswordCommand;
-  let mockRefreshTokenCommand: RefreshTokenCommand;
-  let mockLogoutCommand: LogoutCommand;
+  let mockRegisterCommand: Mocked<RegisterCommand>;
+  let mockLoginCommand: Mocked<LoginCommand>;
+  let mockForgetPasswordCommand: Mocked<ForgetPasswordCommand>;
+  let mockResetPasswordCommand: Mocked<ResetPasswordCommand>;
+  let mockRefreshTokenCommand: Mocked<RefreshTokenCommand>;
+  let mockLogoutCommand: Mocked<LogoutCommand>;
 
   const sampleUser = {
     id: 'user-1',
@@ -38,35 +39,38 @@ describe('AuthService', () => {
     expiresIn: 86400,
   };
 
+  // `imageUrl: null` mirrors the runtime payload (the entity allows `string |
+  // undefined`, but the mocked user intentionally carries `null`), so the
+  // fixture is asserted to the command result shape without changing values.
   const authResult = {
     user: sampleUser,
     ...sampleTokens,
-  };
+  } as unknown as AuthResult;
 
   beforeEach(() => {
     mockRegisterCommand = {
-      execute: vi.fn().mockResolvedValue(authResult),
-    } as any;
+      execute: vi.fn<RegisterCommand['execute']>().mockResolvedValue(authResult),
+    } as unknown as Mocked<RegisterCommand>;
 
     mockLoginCommand = {
-      execute: vi.fn().mockResolvedValue(authResult),
-    } as any;
+      execute: vi.fn<LoginCommand['execute']>().mockResolvedValue(authResult),
+    } as unknown as Mocked<LoginCommand>;
 
     mockForgetPasswordCommand = {
-      execute: vi.fn().mockResolvedValue(undefined),
-    } as any;
+      execute: vi.fn<ForgetPasswordCommand['execute']>().mockResolvedValue(undefined),
+    } as unknown as Mocked<ForgetPasswordCommand>;
 
     mockResetPasswordCommand = {
-      execute: vi.fn().mockResolvedValue(undefined),
-    } as any;
+      execute: vi.fn<ResetPasswordCommand['execute']>().mockResolvedValue(undefined),
+    } as unknown as Mocked<ResetPasswordCommand>;
 
     mockRefreshTokenCommand = {
-      execute: vi.fn().mockResolvedValue(authResult),
-    } as any;
+      execute: vi.fn<RefreshTokenCommand['execute']>().mockResolvedValue(authResult),
+    } as unknown as Mocked<RefreshTokenCommand>;
 
     mockLogoutCommand = {
-      execute: vi.fn().mockResolvedValue(undefined),
-    } as any;
+      execute: vi.fn<LogoutCommand['execute']>().mockResolvedValue(undefined),
+    } as unknown as Mocked<LogoutCommand>;
 
     service = new AuthService(
       mockRegisterCommand,

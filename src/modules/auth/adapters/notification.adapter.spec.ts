@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { NotificationAdapter } from './notification.adapter.js';
 import { NotificationService, ChannelType } from '@bts-soft/core';
 
 describe('NotificationAdapter', () => {
   let adapter: NotificationAdapter;
-  let mockNotificationService: NotificationService;
+  let mockNotificationService: Mocked<NotificationService>;
 
   beforeEach(() => {
     mockNotificationService = {
-      send: vi.fn().mockResolvedValue(undefined),
-    } as any;
+      send: vi.fn<NotificationService['send']>().mockResolvedValue(undefined),
+    } as unknown as Mocked<NotificationService>;
 
     adapter = new NotificationAdapter(mockNotificationService);
   });

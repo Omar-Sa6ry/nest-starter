@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import type {
   ITokenProvider,
   ISessionStore,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StructuredLogger } from '../../../common/logging/logger.service.js';
 import { UserLoggedOutEvent } from '../events/domain.events.js';

@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import type {
   ITokenProvider,
   ISessionStore,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
 import { User } from '../../user/entity/user.entity.js';
 import { rolePermissionsMap } from '../../../common/constant/rolePermissionsMap.constant.js';
 import { I18nService } from 'nestjs-i18n';
@@ -43,6 +43,8 @@ export class RefreshTokenCommand implements IAuthCommand<RefreshTokenCommandInpu
     if (storedUserId !== payload.userId) {
       throw new UnauthorizedException(this.i18n.t('user.INVALID_TOKEN'));
     }
+
+    this.logger.log(`Refresh token rotated for user: ${payload.userId}`, 'RefreshTokenCommand');
 
     const user = await this.userRepo.findOne({ where: { id: payload.userId } });
     if (!user) {

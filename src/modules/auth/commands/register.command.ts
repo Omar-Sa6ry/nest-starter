@@ -1,11 +1,11 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import type {
   IPasswordHasher,
   ITokenProvider,
   ISessionStore,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
 import { User } from '../../user/entity/user.entity.js';
 import { UserFactory } from '../factory/user.factory.js';
 import { Role } from '../../../common/constant/enum.constant.js';
@@ -106,7 +106,7 @@ export class RegisterCommand implements IAuthCommand<
   private async createSession(
     user: User,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const sessionId = uuidv4();
+    const sessionId = randomUUID();
     const permissions = rolePermissionsMap[user.role] || [];
 
     const tokens = await this.tokenProvider.generateTokens({

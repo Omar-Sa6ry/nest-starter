@@ -7,9 +7,13 @@ import type { Request, Response, NextFunction } from 'express';
 import { StructuredLogger } from './common/logging/logger.service.js';
 import { ApiAliasMiddleware } from './common/middleware/api-alias.middleware.js';
 import { AppModule } from './app.module.js';
+import { IdGenerator } from '@bts-soft/core';
 
 async function bootstrap() {
   const logger = new StructuredLogger();
+
+  // Every generated entity id in this project is a snowflake so Set it once here so all base entities inherit the strategy.
+  IdGenerator.setDefaultStrategy('snowflake');
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
     logger,
@@ -46,7 +50,7 @@ async function bootstrap() {
 
   app.use('/google/callback', bodyParser.raw({ type: 'application/json' }));
 
-  const port = Number(configService.get<number>('PORT', 3000)) || 3000;
+  const port = Number(configService.get<number>('PORT', 3000)) || 3003;
   await app.listen(port);
 
   logger.log(

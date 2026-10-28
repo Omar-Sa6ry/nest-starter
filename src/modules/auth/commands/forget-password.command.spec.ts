@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { Repository } from 'typeorm';
+import { User } from '../../user/entity/user.entity.js';
+import { Role } from '../../../common/constant/enum.constant.js';
 import { ForgetPasswordCommand } from './forget-password.command.js';
 import type {
   IRedisAdapter,
@@ -16,49 +18,49 @@ const RESET_USER_KEY_PREFIX = 'password_reset:user:';
 
 describe('ForgetPasswordCommand', () => {
   let command: ForgetPasswordCommand;
-  let mockUserRepo: Repository<any>;
-  let mockRedis: IRedisAdapter;
-  let mockNotification: INotificationAdapter;
-  let mockI18n: I18nService;
-  let mockEventEmitter: EventEmitter2;
+  let mockUserRepo: Mocked<Repository<User>>;
+  let mockRedis: Mocked<IRedisAdapter>;
+  let mockNotification: Mocked<INotificationAdapter>;
+  let mockI18n: Mocked<I18nService>;
+  let mockEventEmitter: Mocked<EventEmitter2>;
   let mockLogger: StructuredLogger;
 
-  const sampleUser = {
+  const sampleUser: User = {
     id: 'user-1',
     email: 'test@example.com',
     passwordHash: 'hashed-password',
     firstName: 'Test',
     lastName: 'User',
     phoneNumber: '',
-    role: 'USER',
+    role: Role.USER,
     isActive: true,
-    imageUrl: null,
+    imageUrl: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   beforeEach(() => {
     mockUserRepo = {
-      findOne: vi.fn(),
-    } as any;
+      findOne: vi.fn<Repository<User>['findOne']>(),
+    } as unknown as Mocked<Repository<User>>;
 
     mockRedis = {
       get: vi.fn(),
       set: vi.fn().mockResolvedValue(undefined),
       del: vi.fn().mockResolvedValue(undefined),
-    };
+    } as unknown as Mocked<IRedisAdapter>;
 
     mockNotification = {
       sendEmail: vi.fn().mockResolvedValue(undefined),
-    };
+    } as unknown as Mocked<INotificationAdapter>;
 
     mockI18n = {
       t: vi.fn().mockImplementation((key: string) => key),
-    } as any;
+    } as unknown as Mocked<I18nService>;
 
     mockEventEmitter = {
       emit: vi.fn(),
-    } as any;
+    } as unknown as Mocked<EventEmitter2>;
 
     mockLogger = new StructuredLogger();
     vi.spyOn(mockLogger, 'log').mockImplementation(() => undefined);

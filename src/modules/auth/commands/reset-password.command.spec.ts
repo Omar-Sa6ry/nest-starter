@@ -1,12 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  Repository,
+} from 'typeorm';
+import { User } from '../../user/entity/user.entity.js';
+import { Role } from '../../../common/constant/enum.constant.js';
 import { ResetPasswordCommand } from './reset-password.command.js';
 import type {
   IPasswordHasher,
   ISessionStore,
-  IRedisAdapter,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
+import type { IRedisAdapter } from '../interfaces/IAuth.interface.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StructuredLogger } from '../../../common/logging/logger.service.js';
 import { I18nService } from 'nestjs-i18n';
@@ -17,34 +23,34 @@ const RESET_USER_KEY_PREFIX = 'password_reset:user:';
 
 describe('ResetPasswordCommand', () => {
   let command: ResetPasswordCommand;
-  let mockUserRepo: Repository<any>;
+  let mockUserRepo: Mocked<Repository<User>>;
   let mockPasswordHasher: IPasswordHasher;
   let mockSessionStore: ISessionStore;
-  let mockRedis: IRedisAdapter;
-  let mockDataSource: DataSource;
-  let mockI18n: I18nService;
-  let mockEventEmitter: EventEmitter2;
+  let mockRedis: Mocked<IRedisAdapter>;
+  let mockDataSource: Mocked<DataSource>;
+  let mockI18n: Mocked<I18nService>;
+  let mockEventEmitter: Mocked<EventEmitter2>;
   let mockLogger: StructuredLogger;
 
-  const sampleUser = {
+  const sampleUser: User = {
     id: 'user-1',
     email: 'test@example.com',
     passwordHash: 'hashed-password',
     firstName: 'Test',
     lastName: 'User',
     phoneNumber: '',
-    role: 'USER',
+    role: Role.USER,
     isActive: true,
-    imageUrl: null,
+    imageUrl: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   beforeEach(() => {
     mockUserRepo = {
-      findOne: vi.fn(),
-      save: vi.fn().mockResolvedValue(sampleUser),
-    } as any;
+      findOne: vi.fn<Repository<User>['findOne']>(),
+      save: vi.fn<Repository<User>['save']>().mockResolvedValue(sampleUser),
+    } as unknown as Mocked<Repository<User>>;
 
     mockPasswordHasher = {
       hash: vi.fn().mockResolvedValue('new-hashed-password'),
@@ -60,29 +66,36 @@ describe('ResetPasswordCommand', () => {
       getUserIdByRefreshToken: vi.fn(),
       revokeRefreshToken: vi.fn(),
       blacklistToken: vi.fn(),
+      isTokenBlacklisted: vi.fn(),
     };
 
     mockRedis = {
       get: vi.fn(),
       set: vi.fn(),
       del: vi.fn().mockResolvedValue(undefined),
-    };
+    } as unknown as Mocked<IRedisAdapter>;
 
     mockDataSource = {
       transaction: vi
-        .fn()
-        .mockImplementation(async (fn: any) =>
-          fn({ getRepository: () => mockUserRepo }),
+        .fn<
+          (
+            runInTransaction: (em: EntityManager) => Promise<unknown>,
+          ) => Promise<unknown>
+        >()
+        .mockImplementation(async (runInTransaction) =>
+          runInTransaction({
+            getRepository: () => mockUserRepo,
+          } as unknown as EntityManager),
         ),
-    } as any;
+    } as unknown as Mocked<DataSource>;
 
     mockI18n = {
       t: vi.fn().mockImplementation((key: string) => key),
-    } as any;
+    } as unknown as Mocked<I18nService>;
 
     mockEventEmitter = {
       emit: vi.fn(),
-    } as any;
+    } as unknown as Mocked<EventEmitter2>;
 
     mockLogger = new StructuredLogger();
     vi.spyOn(mockLogger, 'log').mockImplementation(() => undefined);

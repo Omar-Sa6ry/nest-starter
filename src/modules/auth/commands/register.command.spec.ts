@@ -1,6 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  Repository,
+} from 'typeorm';
+import { User } from '../../user/entity/user.entity.js';
 import { Role } from '../../../common/constant/enum.constant.js';
 import { rolePermissionsMap } from '../../../common/constant/rolePermissionsMap.constant.js';
 import { RegisterCommand } from './register.command.js';
@@ -9,7 +14,7 @@ import type {
   IPasswordHasher,
   ITokenProvider,
   ISessionStore,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StructuredLogger } from '../../../common/logging/logger.service.js';
 import { I18nService } from 'nestjs-i18n';
@@ -19,17 +24,17 @@ const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600;
 
 describe('RegisterCommand', () => {
   let command: RegisterCommand;
-  let mockUserRepo: Repository<any>;
-  let mockUserFactory: UserFactory;
+  let mockUserRepo: Mocked<Repository<User>>;
+  let mockUserFactory: Mocked<UserFactory>;
   let mockPasswordHasher: IPasswordHasher;
   let mockTokenProvider: ITokenProvider;
   let mockSessionStore: ISessionStore;
-  let mockDataSource: DataSource;
-  let mockI18n: I18nService;
-  let mockEventEmitter: EventEmitter2;
+  let mockDataSource: Mocked<DataSource>;
+  let mockI18n: Mocked<I18nService>;
+  let mockEventEmitter: Mocked<EventEmitter2>;
   let mockLogger: StructuredLogger;
 
-  const sampleUser = {
+  const sampleUser: User = {
     id: 'user-1',
     email: 'test@example.com',
     passwordHash: 'hashed-password',
@@ -38,7 +43,7 @@ describe('RegisterCommand', () => {
     phoneNumber: '',
     role: Role.USER,
     isActive: true,
-    imageUrl: null,
+    imageUrl: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -51,14 +56,14 @@ describe('RegisterCommand', () => {
 
   beforeEach(() => {
     mockUserRepo = {
-      findOne: vi.fn(),
-      count: vi.fn(),
-      save: vi.fn(),
-    } as any;
+      findOne: vi.fn<Repository<User>['findOne']>(),
+      count: vi.fn<Repository<User>['count']>(),
+      save: vi.fn<Repository<User>['save']>(),
+    } as unknown as Mocked<Repository<User>>;
 
     mockUserFactory = {
-      createUser: vi.fn().mockReturnValue(sampleUser),
-    } as any;
+      createUser: vi.fn<UserFactory['createUser']>().mockReturnValue(sampleUser),
+    } as unknown as Mocked<UserFactory>;
 
     mockPasswordHasher = {
       hash: vi.fn().mockResolvedValue('hashed-password'),
@@ -81,23 +86,30 @@ describe('RegisterCommand', () => {
       getUserIdByRefreshToken: vi.fn().mockResolvedValue('user-1'),
       revokeRefreshToken: vi.fn(),
       blacklistToken: vi.fn(),
+      isTokenBlacklisted: vi.fn(),
     };
 
     mockDataSource = {
       transaction: vi
-        .fn()
-        .mockImplementation(async (fn: any) =>
-          fn({ getRepository: () => mockUserRepo }),
+        .fn<
+          (
+            runInTransaction: (em: EntityManager) => Promise<unknown>,
+          ) => Promise<unknown>
+        >()
+        .mockImplementation(async (runInTransaction) =>
+          runInTransaction({
+            getRepository: () => mockUserRepo,
+          } as unknown as EntityManager),
         ),
-    } as any;
+    } as unknown as Mocked<DataSource>;
 
     mockI18n = {
       t: vi.fn().mockImplementation((key: string) => key),
-    } as any;
+    } as unknown as Mocked<I18nService>;
 
     mockEventEmitter = {
       emit: vi.fn(),
-    } as any;
+    } as unknown as Mocked<EventEmitter2>;
 
     mockLogger = new StructuredLogger();
     vi.spyOn(mockLogger, 'log').mockImplementation(() => undefined);

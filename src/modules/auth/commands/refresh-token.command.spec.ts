@@ -1,13 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { UnauthorizedException } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { User } from '../../user/entity/user.entity.js';
 import { Role } from '../../../common/constant/enum.constant.js';
 import { rolePermissionsMap } from '../../../common/constant/rolePermissionsMap.constant.js';
 import { RefreshTokenCommand } from './refresh-token.command.js';
 import type {
   ITokenProvider,
   ISessionStore,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
 import { StructuredLogger } from '../../../common/logging/logger.service.js';
 import { I18nService } from 'nestjs-i18n';
 
@@ -15,13 +16,13 @@ const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600;
 
 describe('RefreshTokenCommand', () => {
   let command: RefreshTokenCommand;
-  let mockUserRepo: Repository<any>;
+  let mockUserRepo: Mocked<Repository<User>>;
   let mockTokenProvider: ITokenProvider;
   let mockSessionStore: ISessionStore;
-  let mockI18n: I18nService;
+  let mockI18n: Mocked<I18nService>;
   let mockLogger: StructuredLogger;
 
-  const sampleUser = {
+  const sampleUser: User = {
     id: 'user-1',
     email: 'test@example.com',
     passwordHash: 'hashed-password',
@@ -30,7 +31,7 @@ describe('RefreshTokenCommand', () => {
     phoneNumber: '',
     role: Role.USER,
     isActive: true,
-    imageUrl: null,
+    imageUrl: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -59,8 +60,8 @@ describe('RefreshTokenCommand', () => {
 
   beforeEach(() => {
     mockUserRepo = {
-      findOne: vi.fn(),
-    } as any;
+      findOne: vi.fn<Repository<User>['findOne']>(),
+    } as unknown as Mocked<Repository<User>>;
 
     mockTokenProvider = {
       generateTokens: vi.fn().mockResolvedValue(sampleTokens),
@@ -78,11 +79,12 @@ describe('RefreshTokenCommand', () => {
       getUserIdByRefreshToken: vi.fn().mockResolvedValue('user-1'),
       revokeRefreshToken: vi.fn().mockResolvedValue(undefined),
       blacklistToken: vi.fn(),
+      isTokenBlacklisted: vi.fn(),
     };
 
     mockI18n = {
       t: vi.fn().mockImplementation((key: string) => key),
-    } as any;
+    } as unknown as Mocked<I18nService>;
 
     mockLogger = new StructuredLogger();
     vi.spyOn(mockLogger, 'log').mockImplementation(() => undefined);

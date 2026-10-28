@@ -1,13 +1,20 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
+import type { Repository } from 'typeorm';
 import { OAuthService } from './oauth.service.js';
 import { Role } from '../../../common/constant/enum.constant.js';
 import { UserFactory } from '../factory/user.factory.js';
 import { GoogleUserData } from './interfaces/google.interface.js';
 import { User } from '../../user/entity/user.entity.js';
 
+interface MockUserRepository {
+  findOne(options: unknown): Promise<User | null>;
+  save(user: User): Promise<User>;
+  count(): Promise<number>;
+}
+
 describe('OAuthService', () => {
   let service: OAuthService;
-  let mockUserRepo: any;
+  let mockUserRepo: Mocked<MockUserRepository>;
   let userFactory: UserFactory;
 
   const mockGoogleUserData: GoogleUserData = {
@@ -20,12 +27,17 @@ describe('OAuthService', () => {
 
   beforeEach(() => {
     mockUserRepo = {
-      findOne: vi.fn(),
-      save: vi.fn().mockImplementation((user) => Promise.resolve(user)),
-      count: vi.fn(),
+      findOne: vi.fn<MockUserRepository['findOne']>(),
+      save: vi
+        .fn<MockUserRepository['save']>()
+        .mockImplementation((user) => Promise.resolve(user)),
+      count: vi.fn<MockUserRepository['count']>(),
     };
     userFactory = new UserFactory();
-    service = new OAuthService(mockUserRepo, userFactory);
+    service = new OAuthService(
+      mockUserRepo as unknown as Repository<User>,
+      userFactory,
+    );
   });
 
   describe('validateUser', () => {

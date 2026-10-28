@@ -7,7 +7,8 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['**/*.e2e-spec.ts'],
+    include: ['test/**/*.e2e-spec.ts'],
+    exclude: ['**/.trunk/**', '**/node_modules/**', '**/dist/**'],
     hookTimeout: 180_000,
     testTimeout: 30_000,
     dangerouslyIgnoreUnhandledErrors: true,

@@ -1,55 +1,64 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
+import type { ConfigService } from '@nestjs/config';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
+import type { Request, Response } from 'express';
 import { OAuthController } from './oauth.controller.js';
+import type { OAuthService } from './oauth.service.js';
+import type {
+  ITokenProvider,
+  ISessionStore,
+} from '../../../common/interfaces/ISecurity.interface.js';
+import type { StructuredLogger } from '../../../common/logging/logger.service.js';
+import { User } from '../../user/entity/user.entity.js';
 import { Role } from '../../../common/constant/enum.constant.js';
 
 describe('OAuthController', () => {
   let controller: OAuthController;
-  let mockOAuthService: any;
-  let mockTokenProvider: any;
-  let mockSessionStore: any;
-  let mockConfigService: any;
-  let mockEventEmitter: any;
-  let mockLogger: any;
-  let mockResponse: any;
+  let mockOAuthService: Mocked<OAuthService>;
+  let mockTokenProvider: Mocked<ITokenProvider>;
+  let mockSessionStore: Mocked<ISessionStore>;
+  let mockConfigService: Mocked<ConfigService>;
+  let mockEventEmitter: Mocked<EventEmitter2>;
+  let mockLogger: Mocked<StructuredLogger>;
+  let mockResponse: Mocked<Response>;
 
   beforeEach(() => {
     mockOAuthService = {
-      validateUser: vi.fn(),
-    };
+      validateUser: vi.fn<OAuthService['validateUser']>(),
+    } as unknown as Mocked<OAuthService>;
 
     mockTokenProvider = {
-      generateTokens: vi.fn().mockResolvedValue({
+      generateTokens: vi.fn<ITokenProvider['generateTokens']>().mockResolvedValue({
         accessToken: 'mock-access-token',
         refreshToken: 'mock-refresh-token',
         expiresIn: 3600,
       }),
-    };
+    } as unknown as Mocked<ITokenProvider>;
 
     mockSessionStore = {
-      createSession: vi.fn().mockResolvedValue(undefined),
-      storeRefreshToken: vi.fn().mockResolvedValue(undefined),
-    };
+      createSession: vi.fn<ISessionStore['createSession']>().mockResolvedValue(undefined),
+      storeRefreshToken: vi.fn<ISessionStore['storeRefreshToken']>().mockResolvedValue(undefined),
+    } as unknown as Mocked<ISessionStore>;
 
     mockConfigService = {
-      get: vi.fn().mockImplementation((key: string) => {
-        if (key === 'FRONTEND_URL') return 'http://localhost:5173';
-        return null;
-      }),
-    };
+      get: vi.fn((key: string) =>
+        key === 'FRONTEND_URL' ? 'http://localhost:5173' : null,
+      ),
+    } as unknown as Mocked<ConfigService>;
 
     mockEventEmitter = {
       emit: vi.fn(),
-    };
+    } as unknown as Mocked<EventEmitter2>;
 
     mockLogger = {
       log: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
-    };
+    } as unknown as Mocked<StructuredLogger>;
 
     mockResponse = {
       redirect: vi.fn(),
-    };
+    } as unknown as Mocked<Response>;
 
     controller = new OAuthController(
       mockOAuthService,
@@ -63,21 +72,24 @@ describe('OAuthController', () => {
 
   describe('googleCallback', () => {
     it('should create session and redirect to frontend with tokens on success', async () => {
-      const mockUser = {
+      const mockUser: User = {
         id: 'user-123',
         email: 'test@example.com',
         firstName: 'John',
         lastName: 'Doe',
         role: Role.USER,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
-      const req: any = {
+      const req = {
         user: {
           googleId: 'g-1',
           email: 'test@example.com',
           firstName: 'John',
           lastName: 'Doe',
         },
-      };
+      } as unknown as Request;
 
       mockOAuthService.validateUser.mockResolvedValue(mockUser);
 
@@ -106,7 +118,7 @@ describe('OAuthController', () => {
     });
 
     it('should redirect with error parameter if authentication fails', async () => {
-      const req: any = { user: { googleId: 'g-1' } };
+      const req = { user: { googleId: 'g-1' } } as unknown as Request;
       const error = new Error('Auth failed');
 
       mockOAuthService.validateUser.mockRejectedValue(error);

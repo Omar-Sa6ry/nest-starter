@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { LogoutCommand } from './logout.command.js';
 import type {
   ITokenProvider,
   ISessionStore,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StructuredLogger } from '../../../common/logging/logger.service.js';
 import { UserLoggedOutEvent } from '../events/domain.events.js';
@@ -12,7 +12,7 @@ describe('LogoutCommand', () => {
   let command: LogoutCommand;
   let mockTokenProvider: ITokenProvider;
   let mockSessionStore: ISessionStore;
-  let mockEventEmitter: EventEmitter2;
+  let mockEventEmitter: Mocked<EventEmitter2>;
   let mockLogger: StructuredLogger;
 
   beforeEach(() => {
@@ -32,11 +32,12 @@ describe('LogoutCommand', () => {
       getUserIdByRefreshToken: vi.fn(),
       revokeRefreshToken: vi.fn(),
       blacklistToken: vi.fn().mockResolvedValue(undefined),
+      isTokenBlacklisted: vi.fn(),
     };
 
     mockEventEmitter = {
       emit: vi.fn(),
-    } as any;
+    } as unknown as Mocked<EventEmitter2>;
 
     mockLogger = new StructuredLogger();
     vi.spyOn(mockLogger, 'log').mockImplementation(() => undefined);

@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { RedisAdapter } from './redis.adapter.js';
 import { RedisService } from '@bts-soft/core';
 
 describe('RedisAdapter', () => {
   let adapter: RedisAdapter;
-  let mockRedisService: RedisService;
+  let mockRedisService: Mocked<RedisService>;
 
   beforeEach(() => {
     mockRedisService = {
-      get: vi.fn(),
-      set: vi.fn().mockResolvedValue(undefined),
-      del: vi.fn().mockResolvedValue(undefined),
-    } as any;
+      get: vi.fn<RedisService['get']>(),
+      set: vi.fn<RedisService['set']>().mockResolvedValue(undefined),
+      del: vi.fn<RedisService['del']>().mockResolvedValue(undefined),
+    } as unknown as Mocked<RedisService>;
 
     adapter = new RedisAdapter(mockRedisService);
   });

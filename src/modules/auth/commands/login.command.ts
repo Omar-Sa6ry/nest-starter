@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import {
   Injectable,
   Inject,
@@ -10,7 +10,7 @@ import type {
   IPasswordHasher,
   ITokenProvider,
   ISessionStore,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
 import { User } from '../../user/entity/user.entity.js';
 import { rolePermissionsMap } from '../../../common/constant/rolePermissionsMap.constant.js';
 import { I18nService } from 'nestjs-i18n';
@@ -72,7 +72,7 @@ export class LoginCommand implements IAuthCommand<
   private async createSession(
     user: User,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const sessionId = uuidv4();
+    const sessionId = randomUUID();
     const permissions = rolePermissionsMap[user.role] || [];
 
     const tokens = await this.tokenProvider.generateTokens({

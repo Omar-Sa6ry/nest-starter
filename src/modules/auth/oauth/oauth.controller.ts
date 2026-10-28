@@ -9,13 +9,13 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { OAuthService } from './oauth.service.js';
 import type {
   ITokenProvider,
   ISessionStore,
-} from '../interfaces/IAuth.interface.js';
+} from '../../../common/interfaces/ISecurity.interface.js';
 import {
   TOKEN_PROVIDER,
   SESSION_STORE,
@@ -60,7 +60,7 @@ export class OAuthController {
       const googleUser = req.user as GoogleUserData;
       const user = await this.oauthService.validateUser(googleUser);
 
-      const sessionId = uuidv4();
+      const sessionId = randomUUID();
       const permissions = rolePermissionsMap[user.role] || [];
 
       const tokens = await this.tokenProvider.generateTokens({

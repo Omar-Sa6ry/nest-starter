@@ -1,10 +1,7 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import type {
-  IPasswordHasher,
-  ISessionStore,
-  IRedisAdapter,
-} from '../interfaces/IAuth.interface.js';
+import type { IPasswordHasher, ISessionStore } from '../../../common/interfaces/ISecurity.interface.js';
+import type { IRedisAdapter } from '../interfaces/IAuth.interface.js';
 import { User } from '../../user/entity/user.entity.js';
 import { I18nService } from 'nestjs-i18n';
 import { EventEmitter2 } from '@nestjs/event-emitter';
