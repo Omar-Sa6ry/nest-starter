@@ -20,6 +20,7 @@ import type {
   RegisterCommandInput,
   AuthResult,
 } from '../interfaces/IAuthCommands.interface.js';
+import { AUTH_I18N } from '../constants/auth-i18n.constants.js';
 
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600;
 
@@ -98,9 +99,9 @@ export class RegisterCommand implements IAuthCommand<
     ]);
 
     if (existingEmail)
-      throw new BadRequestException(this.i18n.t('user.EMAIL_EXISTED'));
+      throw new BadRequestException(this.i18n.t(AUTH_I18N.EMAIL_EXISTED));
     if (existingPhone)
-      throw new BadRequestException(this.i18n.t('user.PHONE_EXISTED'));
+      throw new BadRequestException(this.i18n.t(AUTH_I18N.PHONE_EXISTED));
   }
 
   private async createSession(

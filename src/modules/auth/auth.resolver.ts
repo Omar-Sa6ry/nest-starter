@@ -17,6 +17,7 @@ import type {
   IAuthenticatedUser,
   IGraphQLContext,
 } from '../../common/interfaces/IContext.interface.js';
+import { AUTH_I18N } from './constants/auth-i18n.constants.js';
 
 @Resolver()
 export class AuthResolver {
@@ -36,7 +37,7 @@ export class AuthResolver {
     return {
       success: true,
       statusCode: 201,
-      message: await this.i18n.t('user.REGISTER_SUCCESS'),
+      message: await this.i18n.t(AUTH_I18N.REGISTER_SUCCESS),
       timeStamp: new Date().toISOString(),
       data,
     };
@@ -53,7 +54,7 @@ export class AuthResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.LOGIN_SUCCESS'),
+      message: await this.i18n.t(AUTH_I18N.LOGIN_SUCCESS),
       timeStamp: new Date().toISOString(),
       data,
     };
@@ -72,7 +73,7 @@ export class AuthResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.FORGET_PASSWORD_SUCCESS'),
+      message: await this.i18n.t(AUTH_I18N.FORGET_PASSWORD_SUCCESS),
       timeStamp: new Date().toISOString(),
       data: true,
     };
@@ -91,7 +92,7 @@ export class AuthResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.RESET_PASSWORD_SUCCESS'),
+      message: await this.i18n.t(AUTH_I18N.RESET_PASSWORD_SUCCESS),
       timeStamp: new Date().toISOString(),
       data: true,
     };
@@ -115,7 +116,7 @@ export class AuthResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.LOGOUT_SUCCESS'),
+      message: await this.i18n.t(AUTH_I18N.LOGOUT_SUCCESS),
       timeStamp: new Date().toISOString(),
       data: true,
     };
@@ -134,7 +135,7 @@ export class AuthResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.REFRESH_TOKEN_SUCCESS'),
+      message: await this.i18n.t(AUTH_I18N.REFRESH_TOKEN_SUCCESS),
       timeStamp: new Date().toISOString(),
       data,
     };

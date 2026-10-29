@@ -103,7 +103,7 @@ describe('RedisConnectionStore', () => {
 
   it('returns the latest heartbeat across a user’s sockets', async () => {
     redis.sMembers.mockResolvedValue(['s1', 's2']);
-    redis.zScore.mockImplementation((key: string, member: string) =>
+    redis.zScore.mockImplementation((_key: string, member: string) =>
       Promise.resolve(member === 's1' ? 100 : 300),
     );
     await expect(store.getUserLastSeen('u1')).resolves.toBe(300);

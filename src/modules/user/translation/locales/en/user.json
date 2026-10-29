@@ -1,0 +1,17 @@
+{
+  "NOT_FOUND": "User not found",
+  "NOT_FOUNDS": "Users not found",
+  "USER_RETRIEVED": "User retrieved successfully",
+  "PROFILE_RETRIEVED": "Profile retrieved successfully",
+  "USERS_RETRIEVED": "Users retrieved successfully",
+  "PROFILE_UPDATED": "Profile updated successfully",
+  "PASSWORD_CHANGED": "Password changed successfully",
+  "USER_PROMOTED": "User promoted to Admin successfully",
+  "USER_STATUS_UPDATED": "User status updated successfully",
+  "STATUS_UPDATED": "User status updated successfully",
+  "ROLE_UPDATED": "User role updated successfully",
+  "USER_DELETED": "User deleted successfully",
+  "INVALID_IMAGE_URL": "Image URL is invalid",
+  "INVALID_CREDENTIALS": "Invalid credentials",
+  "INVALID_PASSWORD": "Invalid current password"
+}

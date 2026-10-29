@@ -100,7 +100,7 @@ describe('WsAuthGuard', () => {
   });
 
   it('enforces required roles and permissions', async () => {
-    vi.mocked(reflector.getAllAndOverride).mockImplementation((key: any) => {
+    vi.mocked(reflector.getAllAndOverride).mockImplementation((key: unknown) => {
       if (key === 'roles') return [Role.ADMIN];
       return [];
     });
@@ -127,7 +127,7 @@ describe('WsAuthGuard', () => {
   });
 
   it('allows access when user has the required permission', async () => {
-    vi.mocked(reflector.getAllAndOverride).mockImplementation((key: any) => {
+    vi.mocked(reflector.getAllAndOverride).mockImplementation((key: unknown) => {
       if (key === 'permissions') return [Permission.VIEW_USER];
       return [];
     });

@@ -124,8 +124,8 @@ describe('ForgetPasswordCommand', () => {
 
       expect(mockNotification.sendEmail).toHaveBeenCalledWith(
         'test@example.com',
-        'user.PASSWORD_RESET_SUBJECT',
-        'user.PASSWORD_RESET_BODY',
+        'auth.PASSWORD_RESET_SUBJECT',
+        'auth.PASSWORD_RESET_BODY',
         expect.objectContaining({
           name: 'Test',
         }),

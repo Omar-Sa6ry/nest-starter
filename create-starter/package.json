@@ -1,6 +1,6 @@
 {
   "name": "@bts-soft/create-starter",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "author": "Omar Ahmed Sabry",
   "description": "Production-ready NestJS 12 starter template: GraphQL (Apollo, code-first), TypeORM + PostgreSQL, Redis cache and sessions, JWT auth with refresh-token rotation and blacklisting, RBAC, Google OAuth 2.0, sliding-window rate limiting, i18n (en/ar), structured logging with trace IDs, Prometheus metrics, health probes, and isolated Docker Compose stacks for development, test, staging and production.",
   "license": "Apache-2.0",

@@ -14,6 +14,7 @@ import type {
   RefreshTokenCommandInput,
   AuthResult,
 } from '../interfaces/IAuthCommands.interface.js';
+import { AUTH_I18N } from '../constants/auth-i18n.constants.js';
 
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600;
 
@@ -30,25 +31,25 @@ export class RefreshTokenCommand implements IAuthCommand<RefreshTokenCommandInpu
   async execute(input: RefreshTokenCommandInput): Promise<AuthResult> {
     const payload = await this.tokenProvider.verifyRefreshToken(input.refreshToken);
     if (!payload || !payload.sessionId) {
-      throw new UnauthorizedException(this.i18n.t('user.INVALID_TOKEN'));
+      throw new UnauthorizedException(this.i18n.t(AUTH_I18N.INVALID_TOKEN));
     }
 
     const session = await this.sessionStore.getSession(payload.userId, payload.sessionId);
     if (!session) {
-      throw new UnauthorizedException(this.i18n.t('user.SESSION_EXPIRED'));
+      throw new UnauthorizedException(this.i18n.t(AUTH_I18N.SESSION_EXPIRED));
     }
 
     const refreshTokenHash = hashToken(input.refreshToken);
     const storedUserId = await this.sessionStore.getUserIdByRefreshToken(refreshTokenHash);
     if (storedUserId !== payload.userId) {
-      throw new UnauthorizedException(this.i18n.t('user.INVALID_TOKEN'));
+      throw new UnauthorizedException(this.i18n.t(AUTH_I18N.INVALID_TOKEN));
     }
 
     this.logger.log(`Refresh token rotated for user: ${payload.userId}`, 'RefreshTokenCommand');
 
     const user = await this.userRepo.findOne({ where: { id: payload.userId } });
     if (!user) {
-      throw new UnauthorizedException(this.i18n.t('user.NOT_FOUND'));
+      throw new UnauthorizedException(this.i18n.t(AUTH_I18N.INVALID_TOKEN));
     }
 
     const tokens = await this.createSession(user, payload.sessionId, session.createdAt);

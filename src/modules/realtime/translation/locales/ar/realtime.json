@@ -1,0 +1,12 @@
+{
+  "UNAUTHORIZED": "اتصال ويب سوكت غير مصرح به",
+  "RATE_LIMIT_EXCEEDED": "تم تجاوز حد معدل رسائل الويب سوكت",
+  "VALIDATION_ERROR": "فشل التحقق من الرسالة الواردة",
+  "VALIDATION_REQUIRED": "الحقل {property} مطلوب",
+  "VALIDATION_INVALID": "الحقل {property} غير صالح",
+  "VALIDATION_MAX_LENGTH": "الحقل {property} يتجاوز الحد الأقصى للطول",
+  "INTERNAL_ERROR": "حدث خطأ داخلي في الخدمة اللحظية",
+  "INSUFFICIENT_PERMISSIONS": "صلاحيات غير كافية لتنفيذ هذا الإجراء اللحظي",
+  "ROOM_JOINED": "تم الانضمام إلى الغرفة بنجاح",
+  "ROOM_LEFT": "تم مغادرة الغرفة بنجاح"
+}

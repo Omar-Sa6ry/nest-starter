@@ -8,6 +8,7 @@ import { PasswordResetRequestedEvent } from '../events/domain.events.js';
 import * as IAuthInterface from '../interfaces/IAuth.interface.js';
 import { IAuthCommand, ForgetPasswordCommandInput } from '../interfaces/IAuthCommands.interface.js';
 import { User } from '../../user/entity/user.entity.js';
+import { AUTH_I18N } from '../constants/auth-i18n.constants.js';
 
 const RESET_TOKEN_TTL_SECONDS = 15 * 60;
 const RESET_TOKEN_KEY_PREFIX = 'password_reset:token:';
@@ -65,8 +66,8 @@ export class ForgetPasswordCommand implements IAuthCommand<
     await this.notification
       .sendEmail(
         user.email,
-        this.i18n.t('user.PASSWORD_RESET_SUBJECT'),
-        this.i18n.t('user.PASSWORD_RESET_BODY'),
+        this.i18n.t(AUTH_I18N.PASSWORD_RESET_SUBJECT),
+        this.i18n.t(AUTH_I18N.PASSWORD_RESET_BODY),
         { name: user.firstName, token },
       )
       .catch((err) => {

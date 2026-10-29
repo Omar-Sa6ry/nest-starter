@@ -6,6 +6,7 @@ import type { Server } from 'socket.io';
 import { HeartbeatService } from './heartbeat.service.js';
 import type { IConnectionStore } from '../stores/interfaces/IConnectionStore.interface.js';
 import { HEARTBEAT, REALTIME_ENV } from '../constants/realtime.constants.js';
+import type { RealtimeMetricsService } from './realtime-metrics.service.js';
 
 describe('HeartbeatService', () => {
   let store: IConnectionStore;
@@ -39,7 +40,7 @@ describe('HeartbeatService', () => {
     warnLog = vi
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
-    service = new HeartbeatService(store, config, metrics as any);
+    service = new HeartbeatService(store, config, metrics as unknown as RealtimeMetricsService);
   });
 
   afterEach(() => {
@@ -70,7 +71,7 @@ describe('HeartbeatService', () => {
         [REALTIME_ENV.HEARTBEAT_STALE_MS]: '20000',
         [REALTIME_ENV.HEARTBEAT_SWEEP_MS]: '90000',
       });
-      service = new HeartbeatService(store, config, metrics as any);
+      service = new HeartbeatService(store, config, metrics as unknown as RealtimeMetricsService);
 
       vi.useFakeTimers();
       const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
@@ -84,7 +85,7 @@ describe('HeartbeatService', () => {
         [REALTIME_ENV.HEARTBEAT_STALE_MS]: '45000',
         [REALTIME_ENV.HEARTBEAT_SWEEP_MS]: '10000',
       });
-      service = new HeartbeatService(store, config, metrics as any);
+      service = new HeartbeatService(store, config, metrics as unknown as RealtimeMetricsService);
 
       await service.cleanStaleConnections();
       expect(store.findInactiveSockets).toHaveBeenCalledWith(45_000);
@@ -95,7 +96,7 @@ describe('HeartbeatService', () => {
         [REALTIME_ENV.HEARTBEAT_STALE_MS]: '20000',
         [REALTIME_ENV.HEARTBEAT_SWEEP_MS]: 'abc',
       });
-      service = new HeartbeatService(store, config, metrics as any);
+      service = new HeartbeatService(store, config, metrics as unknown as RealtimeMetricsService);
 
       vi.useFakeTimers();
       const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');

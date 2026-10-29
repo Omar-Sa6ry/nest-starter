@@ -1,5 +1,8 @@
 {
   "APP_RUNNING": "App is running",
   "OPERATION_SUCCESS": "Operation executed successfully",
-  "UNEXPECTED_ERROR": "An unexpected error occurred"
+  "UNEXPECTED_ERROR": "An unexpected error occurred",
+  "NO_TOKEN": "No Token provided",
+  "INVALID_TOKEN": "Invalid or expired token",
+  "INSUFFICIENT_PERMISSIONS": "Insufficient permissions"
 }

@@ -11,6 +11,7 @@ import type {
   IAuthCommand,
   ResetPasswordCommandInput,
 } from '../interfaces/IAuthCommands.interface.js';
+import { AUTH_I18N } from '../constants/auth-i18n.constants.js';
 
 const RESET_TOKEN_KEY_PREFIX = 'password_reset:token:';
 const RESET_USER_KEY_PREFIX = 'password_reset:user:';
@@ -30,7 +31,7 @@ export class ResetPasswordCommand implements IAuthCommand<ResetPasswordCommandIn
   async execute(input: ResetPasswordCommandInput): Promise<void> {
     const resetRecord = await this.redis.get<{ userId: string }>(`${RESET_TOKEN_KEY_PREFIX}${input.token}`);
     if (!resetRecord) {
-      throw new BadRequestException(this.i18n.t('user.INVALID_RESET_TOKEN'));
+      throw new BadRequestException(this.i18n.t(AUTH_I18N.INVALID_RESET_TOKEN));
     }
 
     const hashedPassword = await this.passwordHasher.hash(input.passwordNew);
@@ -40,7 +41,7 @@ export class ResetPasswordCommand implements IAuthCommand<ResetPasswordCommandIn
       const user = await userRepo.findOne({ where: { id: resetRecord.userId } });
 
       if (!user) {
-        throw new BadRequestException(this.i18n.t('user.INVALID_RESET_TOKEN'));
+        throw new BadRequestException(this.i18n.t(AUTH_I18N.INVALID_RESET_TOKEN));
       }
 
       user.passwordHash = hashedPassword;

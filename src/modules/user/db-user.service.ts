@@ -15,6 +15,7 @@ import { UpdateProfileInput, ChangePasswordInput } from './dto/user.types.js';
 import { User } from './entity/user.entity.js';
 import { IUserStats } from './interfaces/IUserStats.interface.js';
 import { IPaginatedResult } from '../../common/interfaces/IPaginatedResult.interface.js';
+import { USER_I18N } from './constants/user-i18n.constants.js';
 
 @Injectable()
 export class DbUserService {
@@ -31,7 +32,7 @@ export class DbUserService {
       where: { id },
     });
 
-    if (!user) throw new NotFoundException(this.i18n.t('user.NOT_FOUND'));
+    if (!user) throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUND));
     return user;
   }
 
@@ -40,7 +41,7 @@ export class DbUserService {
       where: { email: email.trim().toLowerCase() },
     });
 
-    if (!user) throw new NotFoundException(this.i18n.t('user.NOT_FOUND'));
+    if (!user) throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUND));
     return user;
   }
 
@@ -56,7 +57,7 @@ export class DbUserService {
     });
 
     if (items.length === 0)
-      throw new NotFoundException(this.i18n.t('user.NOT_FOUNDS'));
+      throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUNDS));
 
     const hasNext = page * limit < totalItems;
     return {
@@ -73,7 +74,7 @@ export class DbUserService {
   ): Promise<User> {
     const user = await this.findById(userId);
     if (!user) {
-      throw new BadRequestException(this.i18n.t('user.NOT_FOUND'));
+      throw new BadRequestException(this.i18n.t(USER_I18N.NOT_FOUND));
     }
 
     const { firstName, lastName, imageUrl } = input;
@@ -82,7 +83,7 @@ export class DbUserService {
 
     if (imageUrl) {
       if (!isHttpUrl(imageUrl)) {
-        throw new BadRequestException(this.i18n.t('user.INVALID_IMAGE_URL'));
+        throw new BadRequestException(this.i18n.t(USER_I18N.INVALID_IMAGE_URL));
       }
       user.imageUrl = imageUrl;
     }
@@ -96,14 +97,14 @@ export class DbUserService {
   ): Promise<User> {
     const user = await this.findById(userId);
     if (!user || !user.passwordHash)
-      throw new BadRequestException(this.i18n.t('user.INVALID_CREDENTIALS'));
+      throw new BadRequestException(this.i18n.t(USER_I18N.INVALID_CREDENTIALS));
 
     const isValid = await this.passwordHasher.compare(
       input.passwordOld,
       user.passwordHash,
     );
     if (!isValid)
-      throw new UnauthorizedException(this.i18n.t('user.INVALID_PASSWORD'));
+      throw new UnauthorizedException(this.i18n.t(USER_I18N.INVALID_PASSWORD));
 
     user.passwordHash = await this.passwordHasher.hash(input.passwordNew);
     return this.userRepo.save(user);
@@ -111,7 +112,7 @@ export class DbUserService {
 
   async promoteUserToAdmin(id: string): Promise<User> {
     const user = await this.findById(id);
-    if (!user) throw new NotFoundException(this.i18n.t('user.NOT_FOUND'));
+    if (!user) throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUND));
 
     user.role = Role.ADMIN;
     return this.userRepo.save(user);
@@ -120,7 +121,7 @@ export class DbUserService {
   async updateUserRole(id: string, role: string): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
-      throw new NotFoundException(this.i18n.t('user.NOT_FOUND'));
+      throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUND));
     }
 
     const normalizedRole = role.toLowerCase() as Role;
@@ -133,7 +134,7 @@ export class DbUserService {
   async toggleUserActive(id: string, isActive: boolean): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
-      throw new NotFoundException(this.i18n.t('user.NOT_FOUND'));
+      throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUND));
     }
 
     user.isActive = isActive;
@@ -143,7 +144,7 @@ export class DbUserService {
   async deleteUser(id: string): Promise<boolean> {
     const user = await this.findById(id);
     if (!user) {
-      throw new NotFoundException(this.i18n.t('user.NOT_FOUND'));
+      throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUND));
     }
 
     const result = await this.userRepo.delete(id);

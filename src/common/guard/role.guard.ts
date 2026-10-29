@@ -22,6 +22,7 @@ import {
   TOKEN_PROVIDER,
   SESSION_STORE,
 } from '../security/tokens/injection.tokens.js';
+import { COMMON_I18N } from '../constant/common-i18n.constants.js';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -46,11 +47,11 @@ export class RoleGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token)
-      throw new UnauthorizedException(await this.i18n.t('user.NO_TOKEN'));
+      throw new UnauthorizedException(await this.i18n.t(COMMON_I18N.NO_TOKEN));
 
     const jti = await this.tokenProvider.getJti(token);
     if (jti && (await this.sessionStore.isTokenBlacklisted(jti)))
-      throw new UnauthorizedException(await this.i18n.t('user.INVALID_TOKEN'));
+      throw new UnauthorizedException(await this.i18n.t(COMMON_I18N.INVALID_TOKEN));
 
     const requiredRoles = this.getRequiredRoles(context);
     const requiredPermissions = this.getRequiredPermissions(context);
@@ -58,7 +59,7 @@ export class RoleGuard implements CanActivate {
     const payload = await this.verifyToken(token);
 
     if (!payload.userId)
-      throw new UnauthorizedException(await this.i18n.t('user.INVALID_TOKEN'));
+      throw new UnauthorizedException(await this.i18n.t(COMMON_I18N.INVALID_TOKEN));
 
     const userRole = payload.role as Role;
     const userPermissions = rolePermissionsMap[userRole] ?? [];
@@ -71,7 +72,7 @@ export class RoleGuard implements CanActivate {
 
     if (!hasRole || !hasPermissions) {
       throw new ForbiddenException(
-        await this.i18n.t('user.INSUFFICIENT_PERMISSIONS'),
+        await this.i18n.t(COMMON_I18N.INSUFFICIENT_PERMISSIONS),
       );
     }
 
@@ -95,7 +96,7 @@ export class RoleGuard implements CanActivate {
   private async verifyToken(token: string): Promise<IJwtPayload> {
     const payload = await this.tokenProvider.verifyAccessToken(token);
     if (!payload) {
-      throw new UnauthorizedException(await this.i18n.t('user.INVALID_TOKEN'));
+      throw new UnauthorizedException(await this.i18n.t(COMMON_I18N.INVALID_TOKEN));
     }
     return payload as IJwtPayload;
   }

@@ -13,6 +13,7 @@ import { Permission } from '../../common/constant/enum.constant.js';
 import { CurrentUser } from '@bts-soft/core';
 import { I18nService } from 'nestjs-i18n';
 import type { IAuthenticatedUser } from '../../common/interfaces/IContext.interface.js';
+import { USER_I18N } from './constants/user-i18n.constants.js';
 
 @Resolver(() => UserType)
 export class UserResolver {
@@ -28,7 +29,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.USER_RETRIEVED'),
+      message: await this.i18n.t(USER_I18N.USER_RETRIEVED),
       timeStamp: new Date().toISOString(),
       data: user as UserType,
     };
@@ -43,7 +44,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.PROFILE_RETRIEVED'),
+      message: await this.i18n.t(USER_I18N.PROFILE_RETRIEVED),
       timeStamp: new Date().toISOString(),
       data: user as UserType,
     };
@@ -59,7 +60,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.USERS_RETRIEVED'),
+      message: await this.i18n.t(USER_I18N.USERS_RETRIEVED),
       timeStamp: new Date().toISOString(),
       data: {
         paginationInfo: {
@@ -82,7 +83,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.PROFILE_UPDATED'),
+      message: await this.i18n.t(USER_I18N.PROFILE_UPDATED),
       timeStamp: new Date().toISOString(),
       data: updated as UserType,
     };
@@ -98,7 +99,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.PASSWORD_CHANGED'),
+      message: await this.i18n.t(USER_I18N.PASSWORD_CHANGED),
       timeStamp: new Date().toISOString(),
       data: true,
     };
@@ -111,7 +112,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.ROLE_UPDATED'),
+      message: await this.i18n.t(USER_I18N.ROLE_UPDATED),
       timeStamp: new Date().toISOString(),
       data: true,
     };
@@ -127,7 +128,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.ROLE_UPDATED'),
+      message: await this.i18n.t(USER_I18N.ROLE_UPDATED),
       timeStamp: new Date().toISOString(),
       data: true,
     };
@@ -143,7 +144,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.STATUS_UPDATED'),
+      message: await this.i18n.t(USER_I18N.STATUS_UPDATED),
       timeStamp: new Date().toISOString(),
       data: true,
     };
@@ -156,7 +157,7 @@ export class UserResolver {
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t('user.USER_DELETED'),
+      message: await this.i18n.t(USER_I18N.USER_DELETED),
       timeStamp: new Date().toISOString(),
       data: true,
     };

@@ -23,6 +23,7 @@ import type {
   LoginCommandInput,
   AuthResult,
 } from '../interfaces/IAuthCommands.interface.js';
+import { AUTH_I18N } from '../constants/auth-i18n.constants.js';
 
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600;
 
@@ -46,7 +47,7 @@ export class LoginCommand implements IAuthCommand<
     const user = await this.userRepo.findOne({ where: { email } });
 
     if (!user || !user.passwordHash)
-      throw new BadRequestException(this.i18n.t('user.INVALID_CREDENTIALS'));
+      throw new BadRequestException(this.i18n.t(AUTH_I18N.INVALID_CREDENTIALS));
 
     const isValidPassword = await this.passwordHasher.compare(
       input.password,
@@ -54,7 +55,7 @@ export class LoginCommand implements IAuthCommand<
     );
     if (!isValidPassword) {
       this.logger.warn(`Failed login attempt for: ${email}`, 'LoginCommand');
-      throw new UnauthorizedException(this.i18n.t('user.INVALID_CREDENTIALS'));
+      throw new UnauthorizedException(this.i18n.t(AUTH_I18N.INVALID_CREDENTIALS));
     }
 
     const tokens = await this.createSession(user);

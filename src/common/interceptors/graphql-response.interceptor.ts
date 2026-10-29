@@ -9,6 +9,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { I18nService } from 'nestjs-i18n';
 import { ResponseFormatter } from './response-formatter.js';
+import { COMMON_I18N } from '../constant/common-i18n.constants.js';
 
 interface GraphQLFormattedPayload {
   statusCode?: number;
@@ -39,7 +40,7 @@ export class GraphQLResponseInterceptor implements NestInterceptor {
 
         return ResponseFormatter.formatSuccess(
           data,
-          this.i18n?.t('common.OPERATION_SUCCESS') ??
+          this.i18n?.t(COMMON_I18N.OPERATION_SUCCESS) ??
             'Operation executed successfully',
         );
       }),

@@ -1,5 +1,8 @@
 {
   "APP_RUNNING": "التطبيق يعمل بنجاح",
   "OPERATION_SUCCESS": "تم تنفيذ العملية بنجاح",
-  "UNEXPECTED_ERROR": "حدث خطأ غير متوقع"
+  "UNEXPECTED_ERROR": "حدث خطأ غير متوقع",
+  "NO_TOKEN": "لم يتم إرسال التوكن",
+  "INVALID_TOKEN": "توكن غير صالح أو منتهي الصلاحية",
+  "INSUFFICIENT_PERMISSIONS": "صلاحيات غير كافية"
 }

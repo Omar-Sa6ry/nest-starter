@@ -1,0 +1,10 @@
+export const COMMON_I18N = {
+  APP_RUNNING: 'common.APP_RUNNING',
+  OPERATION_SUCCESS: 'common.OPERATION_SUCCESS',
+  UNEXPECTED_ERROR: 'common.UNEXPECTED_ERROR',
+  NO_TOKEN: 'common.NO_TOKEN',
+  INVALID_TOKEN: 'common.INVALID_TOKEN',
+  INSUFFICIENT_PERMISSIONS: 'common.INSUFFICIENT_PERMISSIONS',
+} as const;
+
+export type CommonI18nKey = (typeof COMMON_I18N)[keyof typeof COMMON_I18N];
