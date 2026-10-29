@@ -760,10 +760,16 @@ Alertmanager is configured from `infrastructure/docker/common/alertmanager/alert
 
 ## 13. Internationalization
 
-- Catalogs: `src/common/translation/locales/en/*.json` and `src/common/translation/locales/ar/*.json` (namespaced per feature: `common`, `user`).
+- Catalogs: Modules maintain their own translation files locally (e.g. `src/modules/{module}/translation/locales/{en,ar}/*.json`) and shared messages live in `src/common/translation/locales/{en,ar}/common.json`.
+- Aggregation: `syncLocales()` copies module catalogs into `src/common/translation/locales/` dynamically, ensuring full modularity.
 - Loaded by `TranslationModule.forRoot()` from `@bts-soft/core` with `fallbackLanguage: 'en'` and `watch: true` (changes are picked up without a restart).
-- Language resolution order: `Accept-Language` header, then `x-lang` header, then `en`. The value is placed on the GraphQL context as `context.language`.
-- Resolvers translate with `await this.i18n.t('user.REGISTER_SUCCESS')`.
+- Language resolution order: `Accept-Language` header, then `x-lang` header, then `en` (default). The value is placed on the GraphQL context as `context.language`.
+- Type-Safe Translation Keys: All modules expose strongly typed constants for compile-time safety and autocomplete:
+  - `AUTH_I18N` from `src/modules/auth/constants/auth-i18n.constants.js`
+  - `USER_I18N` from `src/modules/user/constants/user-i18n.constants.js`
+  - `COMMON_I18N` from `src/common/constant/common-i18n.constants.js`
+  - `WS_I18N` from `src/modules/realtime/constants/realtime-i18n.constants.js`
+- Resolvers translate with `await this.i18n.t(AUTH_I18N.REGISTER_SUCCESS)`.
 - Validation errors are translated too: `ValidationPipe` throws `I18nValidationException`, so field messages arrive localized.
 
 ```bash

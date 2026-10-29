@@ -153,38 +153,38 @@ services:
         limits:
           memory: 64M
 
-  # NATS Message Broker
-  nats:
-    image: nats:2-alpine
-    container_name: starter-prod-nats
-    restart: unless-stopped
-    command: ["--jetstream", "--store_dir", "/data"]
-    volumes:
-      - nats_prod_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 256M
+  # # NATS Message Broker
+  # nats:
+  #   image: nats:2-alpine
+  #   container_name: starter-prod-nats
+  #   restart: unless-stopped
+  #   command: ["--jetstream", "--store_dir", "/data"]
+  #   volumes:
+  #     - nats_prod_data:/data
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
 
-  # RabbitMQ Message Broker
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    container_name: starter-prod-rabbitmq
-    restart: unless-stopped
-    hostname: rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
-    volumes:
-      - rabbitmq_prod_data:/var/lib/rabbitmq
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+  # # RabbitMQ Message Broker
+  # rabbitmq:
+  #   image: rabbitmq:3.13-management-alpine
+  #   container_name: starter-prod-rabbitmq
+  #   restart: unless-stopped
+  #   hostname: rabbitmq
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
+  #     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
+  #   volumes:
+  #     - rabbitmq_prod_data:/var/lib/rabbitmq
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
 
 volumes:
   postgres_prod_data:
   redis_prod_data:
   alertmanager_prod_data:
-  nats_prod_data:
-  rabbitmq_prod_data:
+  # nats_prod_data:
+  # rabbitmq_prod_data:

@@ -96,7 +96,7 @@ docker-dev-rebuild:
 		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml up -d --build --force-recreate app
 
 docker-test-up:
-		docker compose --env-file environments/.env.test -f infrastructure/docker/test/docker-compose.yml up -d --build
+		docker compose --env-file environments/.env.test -f infrastructure/docker/test/docker-compose.yml up -d postgres redis
 
 docker-test-down:
 		docker compose --env-file environments/.env.test -f infrastructure/docker/test/docker-compose.yml down
