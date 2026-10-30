@@ -58,10 +58,25 @@ export function syncLocales(options?: SyncLocalesOptions): string {
               const files = fs.readdirSync(moduleLocalesDir);
               for (const file of files) {
                 if (file.endsWith('.json')) {
-                  fs.copyFileSync(
-                    path.join(moduleLocalesDir, file),
-                    path.join(langTargetDir, file),
-                  );
+                  const srcFile = path.join(moduleLocalesDir, file);
+                  const destFile = path.join(langTargetDir, file);
+                  try {
+                    let shouldCopy = true;
+                    if (fs.existsSync(destFile)) {
+                      const srcStat = fs.statSync(srcFile);
+                      const destStat = fs.statSync(destFile);
+                      if (srcStat.mtimeMs <= destStat.mtimeMs && srcStat.size === destStat.size) {
+                        shouldCopy = false;
+                      }
+                    }
+                    if (shouldCopy) {
+                      fs.copyFileSync(srcFile, destFile);
+                    }
+                  } catch (err: any) {
+                    if (err?.code !== 'EBUSY') {
+                      throw err;
+                    }
+                  }
                 }
               }
             }

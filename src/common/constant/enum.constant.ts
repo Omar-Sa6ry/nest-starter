@@ -16,6 +16,10 @@ export enum Permission {
   CHANGE_PASSWORD = 'CHANGE_PASSWORD',
   FORGOT_PASSWORD = 'FORGOT_PASSWORD',
   LOGOUT = 'LOGOUT',
+
+  // Notification
+  NOTIFICATION_SEND = 'NOTIFICATION_SEND',
+  NOTIFICATION_MANAGE = 'NOTIFICATION_MANAGE',
 }
 
 registerEnumType(Permission, {

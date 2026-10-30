@@ -1,0 +1,13 @@
+{
+  "SENT_SUCCESS": "Notification sent successfully",
+  "QUEUED_SUCCESS": "Notification queued successfully for background dispatch",
+  "PREFERENCES_UPDATED": "Notification preferences updated successfully",
+  "PREFERENCES_FETCHED": "Notification preferences fetched successfully",
+  "STATS_FETCHED": "Notification statistics retrieved successfully",
+  "FAILED_JOBS_FETCHED": "Dead letter failed jobs retrieved successfully",
+  "JOB_REPLAYED": "Dead letter job replayed successfully",
+  "JOBS_PURGED": "Dead letter jobs purged successfully",
+  "NOT_FOUND": "Notification or job not found",
+  "FAILED_TO_SEND": "Failed to deliver notification",
+  "RECIPIENT_OPTOUT": "Recipient has opted out of this notification channel"
+}

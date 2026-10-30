@@ -38,6 +38,10 @@ export class GraphQLResponseInterceptor implements NestInterceptor {
           return data;
         }
 
+        if (Array.isArray(data)) {
+          return data;
+        }
+
         return ResponseFormatter.formatSuccess(
           data,
           this.i18n?.t(COMMON_I18N.OPERATION_SUCCESS) ??

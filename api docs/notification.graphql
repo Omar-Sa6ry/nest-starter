@@ -1,0 +1,129 @@
+# SEND NOTIFICATION (Authenticated — requires NOTIFICATION_SEND => Admin / Service)
+mutation SendNotification {
+  sendNotification(
+    input: {
+      channel: EMAIL
+      recipientId: "omarsabry.dev@gmail.com"
+      subject: "Important System Update"
+      body: "Hello, your order #1029 has been processed successfully!"
+      priority: HIGH
+      category: TRANSACTIONAL
+      templateName: "order-confirmed"
+      idempotencyKey: "order-1029-email"
+    }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      jobId
+      channel
+      recipientId
+      status
+      providerMessageId
+    }
+  }
+}
+
+# UPDATE NOTIFICATION PREFERENCES (Authenticated — User for self, or Admin / NOTIFICATION_MANAGE for any user)
+# Enables a user to opt-in or opt-out from a specific delivery channel and category
+mutation UpdateNotificationPreferences {
+  updateNotificationPreferences(
+    input: {
+      recipientId: "user2@gmail.com"
+      channel: EMAIL
+      optOut: true
+      category: MARKETING
+    }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      recipientId
+      channel
+      isOptedOut
+    }
+  }
+}
+
+#  GET NOTIFICATION PREFERENCE STATUS (Authenticated — User for self, or Admin / NOTIFICATION_MANAGE for any user)
+# Checks whether the recipient has opted out of a specific notification channel/category
+query GetNotificationPreferenceStatus {
+  getNotificationPreferenceStatus(
+    recipientId: "user2@gmail.com"
+    channel: EMAIL
+    category: MARKETING
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      recipientId
+      channel
+      isOptedOut
+    }
+  }
+}
+
+# LIST DLQ FAILED JOBS WITH DIAGNOSTICS (Authenticated — requires NOTIFICATION_MANAGE => Admin only)
+# Returns failed job diagnostics including reason, attempts made, and failure timestamp
+query GetNotificationDlqFailedJobs {
+  getNotificationDlqFailedJobs(channel: EMAIL, start: 0, end: 100) {
+    jobId
+    channel
+    recipientRef
+    failedReason
+    attemptsMade
+    failedAt
+  }
+}
+
+# GET DLQ STATISTICS (Authenticated — requires NOTIFICATION_MANAGE => Admin only)
+# Retrieves aggregate failure counts in the Dead Letter Queue
+query GetNotificationDlqStats {
+  getNotificationDlqStats {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      totalFailed
+    }
+  }
+}
+
+# REPLAY DEAD-LETTER QUEUE (DLQ) JOB (Authenticated — requires NOTIFICATION_MANAGE => Admin only)
+# Replays a failed notification job from the Dead Letter Queue
+mutation ReplayDlqJob {
+  replayNotificationDlqJob(
+    jobId: "aa310d23-2aab-45cc-9d21-83ee92a611c7"
+    channel: EMAIL
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      jobId
+      channel
+      recipientId
+      status
+    }
+  }
+}
+
+# PURGE DEAD-LETTER QUEUE (DLQ) JOBS (Authenticated — requires NOTIFICATION_MANAGE => Admin only)
+# Permanently clears failed jobs from the DLQ for all channels or a specific channel
+mutation PurgeDlqJobs {
+  purgeNotificationDlq(channel: EMAIL) {
+    statusCode
+    message
+    success
+    timeStamp
+    data
+  }
+}

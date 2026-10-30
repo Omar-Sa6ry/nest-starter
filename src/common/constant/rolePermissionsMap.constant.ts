@@ -10,6 +10,10 @@ export const rolePermissionsMap: Record<Role, Permission[]> = {
     Permission.FORGOT_PASSWORD,
     Permission.LOGOUT,
     Permission.VIEW_USER,
+
+    // Notification
+    Permission.NOTIFICATION_SEND,
+    Permission.NOTIFICATION_MANAGE,
   ],
 
   [Role.USER]: [
