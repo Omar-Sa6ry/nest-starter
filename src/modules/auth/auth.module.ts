@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
-import { NotificationModule } from '@bts-soft/core';
+import { NotificationModule } from '../notification/notification.module.js';
 import { AuthService } from './auth.service.js';
 import { AuthResolver } from './auth.resolver.js';
 import { UserFactory } from './factory/user.factory.js';

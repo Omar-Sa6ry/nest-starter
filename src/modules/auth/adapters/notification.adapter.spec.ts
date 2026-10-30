@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { NotificationAdapter } from './notification.adapter.js';
-import { NotificationService, ChannelType } from '@bts-soft/core';
+import { NotificationService } from '../../notification/notification.service.js';
 
 describe('NotificationAdapter', () => {
   let adapter: NotificationAdapter;
@@ -8,7 +8,12 @@ describe('NotificationAdapter', () => {
 
   beforeEach(() => {
     mockNotificationService = {
-      send: vi.fn<NotificationService['send']>().mockResolvedValue(undefined),
+      sendEmail: vi.fn().mockResolvedValue({
+        jobId: 'job-123',
+        channel: 'email',
+        recipientId: 'test@example.com',
+        status: 'queued',
+      }),
     } as unknown as Mocked<NotificationService>;
 
     adapter = new NotificationAdapter(mockNotificationService);
@@ -23,8 +28,8 @@ describe('NotificationAdapter', () => {
         { name: 'Test' },
       );
 
-      expect(mockNotificationService.send).toHaveBeenCalledWith(ChannelType.EMAIL, {
-        recipientId: 'test@example.com',
+      expect(mockNotificationService.sendEmail).toHaveBeenCalledWith({
+        to: 'test@example.com',
         subject: 'Test Subject',
         body: 'Test Body',
         context: { name: 'Test' },
@@ -39,8 +44,8 @@ describe('NotificationAdapter', () => {
         { email: 'user+tag@example.com', code: '123-456' },
       );
 
-      expect(mockNotificationService.send).toHaveBeenCalledWith(ChannelType.EMAIL, {
-        recipientId: 'user+tag@example.com',
+      expect(mockNotificationService.sendEmail).toHaveBeenCalledWith({
+        to: 'user+tag@example.com',
         subject: 'Subject with "quotes"',
         body: 'Body with {braces}',
         context: { email: 'user+tag@example.com', code: '123-456' },
@@ -50,8 +55,8 @@ describe('NotificationAdapter', () => {
     it('handles empty context', async () => {
       await adapter.sendEmail('test@example.com', 'Subject', 'Body', {});
 
-      expect(mockNotificationService.send).toHaveBeenCalledWith(ChannelType.EMAIL, {
-        recipientId: 'test@example.com',
+      expect(mockNotificationService.sendEmail).toHaveBeenCalledWith({
+        to: 'test@example.com',
         subject: 'Subject',
         body: 'Body',
         context: {},
@@ -68,7 +73,7 @@ describe('NotificationAdapter', () => {
 
     it('propagates errors from notification service', async () => {
       const error = new Error('SMTP connection failed');
-      mockNotificationService.send.mockRejectedValue(error);
+      mockNotificationService.sendEmail.mockRejectedValue(error);
 
       await expect(
         adapter.sendEmail('test@example.com', 'Subject', 'Body', {})

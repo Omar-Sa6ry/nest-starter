@@ -63,6 +63,7 @@ export class NotificationService {
       priority: input.priority,
       category: input.category,
       templateName: input.templateName,
+      context: input.context,
       idempotencyKey: input.idempotencyKey,
     });
 
@@ -180,6 +181,7 @@ export class NotificationService {
       subject: input.subject,
       body: input.body,
       templateName: input.templateName,
+      context: input.context,
     });
   }
 }

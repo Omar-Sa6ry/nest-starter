@@ -63,4 +63,6 @@ export class SendNotificationInput {
   @IsOptional()
   @IsString()
   idempotencyKey?: string;
+
+  context?: Record<string, unknown>;
 }

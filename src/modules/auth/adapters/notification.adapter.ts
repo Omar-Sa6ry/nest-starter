@@ -1,11 +1,11 @@
-import { Injectable, Inject, Optional } from '@nestjs/common';
-import { NotificationService, ChannelType } from '@bts-soft/core';
+import { Injectable, Optional } from '@nestjs/common';
+import { NotificationService } from '../../notification/notification.service.js';
 import { INotificationAdapter } from '../interfaces/IAuth.interface.js';
 
 @Injectable()
 export class NotificationAdapter implements INotificationAdapter {
   constructor(
-    @Optional() @Inject('NOTIFICATION_SERVICE') private readonly notificationService?: NotificationService,
+    @Optional() private readonly notificationService?: NotificationService,
   ) {}
 
   async sendEmail(to: string, subject: string, body: string, context: Record<string, unknown>): Promise<void> {
@@ -13,8 +13,8 @@ export class NotificationAdapter implements INotificationAdapter {
       return;
     }
 
-    await this.notificationService.send(ChannelType.EMAIL, {
-      recipientId: to,
+    await this.notificationService.sendEmail({
+      to,
       subject,
       body,
       context,

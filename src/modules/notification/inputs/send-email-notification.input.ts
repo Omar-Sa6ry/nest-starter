@@ -23,4 +23,6 @@ export class SendEmailNotificationInput {
   @IsOptional()
   @IsString()
   templateName?: string;
+
+  context?: Record<string, unknown>;
 }
