@@ -1,0 +1,13 @@
+{
+  "INITIATE_SUCCESS": "تم بدء عملية الدفع بنجاح",
+  "VERIFY_SUCCESS": "تم التحقق من عملية الدفع بنجاح",
+  "REFUND_SUCCESS": "تم استرداد المبلغ بنجاح",
+  "TRANSACTION_RETRIEVED": "تم استرجاع بيانات المعاملة بنجاح",
+  "TRANSACTIONS_RETRIEVED": "تم استرجاع قائمة المعاملات بنجاح",
+  "NOT_FOUND": "معاملة الدفع غير موجودة",
+  "PROVIDER_NOT_CONFIGURED": "مزود خدمة الدفع غير مهيأ بشكل صحيح",
+  "PAYMENT_FAILED": "فشلت عملية الدفع",
+  "UNAUTHORIZED": "إجراء دفع غير مصرح به",
+  "WEBHOOK_PROCESSED": "تمت معالجة إشعار الدفع بنجاح",
+  "WEBHOOK_INVALID_SIGNATURE": "توقيع إشعار الدفع غير صالح"
+}

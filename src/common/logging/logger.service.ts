@@ -6,8 +6,16 @@ const SENSITIVE_KEY =
 
 @Injectable()
 export class StructuredLogger implements LoggerService {
-  static redactText(text: string): string {
-    return text
+  static redactText(text: unknown): string {
+    if (typeof text !== 'string') {
+      if (text instanceof Error) {
+        text = text.stack || text.message;
+      } else {
+        text = String(text ?? '');
+      }
+    }
+    const str = text as string;
+    return str
       .replace(
         /(https?:\/\/[^\s"'<>]*\/(?:api\/)?webhooks?\/(?:\d+\/)?)[^\s"'<>/]+/gi,
         '$1***',

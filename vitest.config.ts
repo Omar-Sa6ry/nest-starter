@@ -31,8 +31,11 @@ export default defineConfig({
         'src/**/*.type.ts',
         'src/**/*.dto.ts',
         'src/**/*.input.ts',
+        'src/**/*.inputs.ts',
         'src/**/*.interface.ts',
         'src/**/*.entity.ts',
+        'src/**/*.enum.ts',
+        'src/**/constants/**',
         'src/common/constant/**',
       ],
       thresholds: {

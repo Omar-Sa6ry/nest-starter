@@ -20,6 +20,11 @@ export enum Permission {
   // Notification
   NOTIFICATION_SEND = 'NOTIFICATION_SEND',
   NOTIFICATION_MANAGE = 'NOTIFICATION_MANAGE',
+
+  // Payment
+  PAYMENT_INITIATE = 'PAYMENT_INITIATE',
+  PAYMENT_VIEW = 'PAYMENT_VIEW',
+  PAYMENT_MANAGE = 'PAYMENT_MANAGE',
 }
 
 registerEnumType(Permission, {

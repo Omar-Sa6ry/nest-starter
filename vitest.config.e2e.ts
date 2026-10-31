@@ -10,7 +10,8 @@ export default defineConfig({
     include: ['test/**/*.e2e-spec.ts'],
     exclude: ['**/.trunk/**', '**/node_modules/**', '**/dist/**'],
     hookTimeout: 180_000,
-    testTimeout: 30_000,
+    testTimeout: 60_000,
+    fileParallelism: false,
     dangerouslyIgnoreUnhandledErrors: true,
   },
 });

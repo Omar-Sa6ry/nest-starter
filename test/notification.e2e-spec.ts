@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ExecutionContext } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module.js';
 import { RoleGuard } from '../src/common/guard/role.guard.js';
@@ -34,11 +34,11 @@ describe('Notification (e2e)', { timeout: 60_000 }, () => {
     })
       .overrideGuard(RoleGuard)
       .useValue({
-        canActivate: (context: any) => {
+        canActivate: (context: ExecutionContext) => {
           const req =
-            context.getType() === 'graphql'
+            (context.getType<string>() === 'graphql'
               ? context.getArgs()[2].req
-              : context.switchToHttp().getRequest<IAuthenticatedRequest>();
+              : context.switchToHttp().getRequest()) as IAuthenticatedRequest;
 
           req.user = currentUserContext;
           return true;

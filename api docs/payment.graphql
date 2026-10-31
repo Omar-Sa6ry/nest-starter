@@ -1,0 +1,283 @@
+# ==============================================================================
+# Payment Module - GraphQL & REST Testing Documentation
+# ==============================================================================
+# All GraphQL requests below require Authorization Header:
+# Headers: { "Authorization": "Bearer <YOUR_JWT_ACCESS_TOKEN>" }
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. INITIATE PAYMENT (Requires: Permission.PAYMENT_INITIATE)
+# ------------------------------------------------------------------------------
+
+# 1.1 Stripe Payment (Returns checkoutUrl)
+mutation InitiateStripePayment {
+  initiatePayment(
+    input: {
+      amount: 150.50
+      currency: USD
+      provider: STRIPE
+      customer: {
+        name: "Omar Sabry"
+        email: "omar@example.com"
+        phone: "+201000000000"
+      }
+      items: [
+        {
+          name: "Annual Subscription"
+          quantity: 1
+          unitAmount: 150.50
+          description: "Full access license"
+        }
+      ]
+      returnUrl: "https://myapp.com/payment/success"
+      cancelUrl: "https://myapp.com/payment/cancel"
+    }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      transactionId
+      status
+      providerTransactionId
+      checkoutUrl
+      referenceNumber
+    }
+  }
+}
+
+# 1.2 Fawry Pay (Returns referenceNumber for kiosk cash payment)
+mutation InitiateFawryPayment {
+  initiatePayment(
+    input: {
+      amount: 500.00
+      currency: EGP
+      provider: FAWRY
+      customer: {
+        name: "Ahmed Ali"
+        email: "ahmed@example.com"
+        phone: "01012345678"
+      }
+      items: [
+        {
+          name: "Consulting Session"
+          quantity: 1
+          unitAmount: 500.00
+          description: "1 Hour Tech Consultation"
+        }
+      ]
+    }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      transactionId
+      status
+      referenceNumber
+      checkoutUrl
+    }
+  }
+}
+
+# 1.3 Paymob Payment (Returns iFrame checkoutUrl)
+mutation InitiatePaymobPayment {
+  initiatePayment(
+    input: {
+      amount: 350.00
+      currency: EGP
+      provider: PAYMOB
+      customer: {
+        name: "Omar Sabry"
+        email: "omar@example.com"
+        phone: "+201012345678"
+      }
+      returnUrl: "https://myapp.com/payment/success"
+    }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      transactionId
+      status
+      providerTransactionId
+      checkoutUrl
+      referenceNumber
+    }
+  }
+}
+
+# 1.4 PayPal Payment (Returns PayPal approval URL)
+mutation InitiatePaypalPayment {
+  initiatePayment(
+    input: {
+      amount: 75.00
+      currency: USD
+      provider: PAYPAL
+      customer: {
+        name: "Omar Sabry"
+        email: "omar@example.com"
+      }
+      items: [
+        {
+          name: "Cloud Hosting Plan"
+          quantity: 1
+          unitAmount: 75.00
+          description: "Monthly subscription"
+        }
+      ]
+      returnUrl: "https://myapp.com/payment/success"
+      cancelUrl: "https://myapp.com/payment/cancel"
+    }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      transactionId
+      status
+      providerTransactionId
+      checkoutUrl
+      referenceNumber
+    }
+  }
+}
+
+
+# ------------------------------------------------------------------------------
+# 2. VERIFY PAYMENT (Requires: Permission.PAYMENT_VIEW)
+# ------------------------------------------------------------------------------
+# Checks the payment status directly with the external provider gateway
+mutation VerifyPayment {
+  verifyPayment(transactionId: "374871411732254720") {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      id
+      userId
+      amount
+      currency
+      provider
+      status
+      providerTransactionId
+      referenceNumber
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+
+# ------------------------------------------------------------------------------
+# 3. GET PAYMENT TRANSACTION BY ID (Requires: Permission.PAYMENT_VIEW)
+# ------------------------------------------------------------------------------
+query GetPaymentTransaction {
+  getPaymentTransaction(id: "374871411732254720") {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      id
+      userId
+      amount
+      currency
+      provider
+      status
+      providerTransactionId
+      checkoutUrl
+      referenceNumber
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+
+# ------------------------------------------------------------------------------
+# 4. GET PAGINATED PAYMENT TRANSACTIONS (Requires: Permission.PAYMENT_VIEW)
+# ------------------------------------------------------------------------------
+query GetPaymentTransactions {
+  getPaymentTransactions(page: 1, limit: 10) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      paginationInfo {
+        totalItems
+        currentPage
+        totalPages
+        limit
+        hasPreviousPage
+        hasNextPage
+        previousPage
+        nextPage
+      }
+      items {
+        id
+        userId
+        amount
+        currency
+        provider
+        status
+        providerTransactionId
+        referenceNumber
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+
+# ------------------------------------------------------------------------------
+# 5. REFUND PAYMENT (Requires: Permission.PAYMENT_MANAGE => Role.ADMIN)
+# Note: The transaction status must be COMPLETED before it can be refunded.
+# ------------------------------------------------------------------------------
+mutation RefundPayment {
+  refundPayment(
+    input: {
+      transactionId: "374871411732254720"
+      amount: 50.00
+      reason: "Customer requested partial refund"
+    }
+  ) {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      id
+      status
+      amount
+      currency
+      provider
+      updatedAt
+    }
+  }
+}
+
+
+# ==============================================================================
+# 6. REST WEBHOOK ENDPOINTS (Simulate via Terminal / PowerShell / cURL)
+# ==============================================================================
+
+# 6.1 Stripe Webhook:
+# Invoke-RestMethod -Uri "http://localhost:3000/api/webhooks/payment/stripe" -Method Post -ContentType "application/json" -Body '{"type":"checkout.session.completed","data":{"object":{"id":"cs_test_mock_123","client_reference_id":"<TRANSACTION_ID>","payment_status":"paid"}}}'
+
+# 6.2 Fawry Webhook:
+# Invoke-RestMethod -Uri "http://localhost:3000/api/webhooks/payment/fawry" -Method Post -ContentType "application/json" -Body '{"merchantRefNumber":"<TRANSACTION_ID>","fawryRefNumber":"FW97948792","orderStatus":"PAID","paymentAmount":500.0}'
+
+# 6.3 Paymob Webhook:
+# Invoke-RestMethod -Uri "http://localhost:3000/api/webhooks/payment/paymob" -Method Post -ContentType "application/json" -Body '{"type":"TRANSACTION","obj":{"id":99887766,"order":{"merchant_order_id":"<TRANSACTION_ID>"},"success":true,"amount_cents":35000,"currency":"EGP"}}'
+
+# 6.4 PayPal Webhook:
+# Invoke-RestMethod -Uri "http://localhost:3000/api/webhooks/payment/paypal" -Method Post -ContentType "application/json" -Body '{"event_type":"PAYMENT.CAPTURE.COMPLETED","resource":{"id":"CAP-123","custom_id":"<TRANSACTION_ID>","status":"COMPLETED"}}'

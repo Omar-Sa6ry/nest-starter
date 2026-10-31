@@ -13,9 +13,30 @@ export class PaginationInfo {
   nextPage?: number;
 }
 
-export function GeneralResponse<T>(classRef: Type<T>) {
+export interface IGeneralResponse<T> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  timeStamp: string;
+  data?: T;
+}
+
+export interface IPaginatedData<T> {
+  paginationInfo: PaginationInfo;
+  items: T[];
+}
+
+export interface IPaginatedResponse<T> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  timeStamp: string;
+  data?: IPaginatedData<T>;
+}
+
+export function GeneralResponse<T>(classRef: Type<T>): Type<IGeneralResponse<T>> {
   @ObjectType({ isAbstract: true })
-  abstract class GeneralResponseClass {
+  abstract class GeneralResponseClass implements IGeneralResponse<T> {
     @Field(() => Boolean, { defaultValue: true })
     success: boolean = true;
 
@@ -31,12 +52,14 @@ export function GeneralResponse<T>(classRef: Type<T>) {
     @Field(() => classRef, { nullable: true })
     data?: T;
   }
-  return GeneralResponseClass;
+  return GeneralResponseClass as Type<IGeneralResponse<T>>;
 }
 
-export function PaginatedResponse<T>(classRef: Type<T>) {
-  @ObjectType({ isAbstract: true })
-  abstract class PaginatedDataClass {
+export function PaginatedResponse<T>(classRef: Type<T>): Type<IPaginatedResponse<T>> {
+  const name = classRef.name || 'Item';
+
+  @ObjectType(`Paginated${name}Data`)
+  abstract class PaginatedDataClass implements IPaginatedData<T> {
     @Field(() => PaginationInfo)
     paginationInfo: PaginationInfo;
 
@@ -45,7 +68,7 @@ export function PaginatedResponse<T>(classRef: Type<T>) {
   }
 
   @ObjectType({ isAbstract: true })
-  abstract class PaginatedResponseClass {
+  abstract class PaginatedResponseClass implements IPaginatedResponse<T> {
     @Field(() => Boolean, { defaultValue: true })
     success: boolean = true;
 
@@ -61,7 +84,7 @@ export function PaginatedResponse<T>(classRef: Type<T>) {
     @Field(() => PaginatedDataClass, { nullable: true })
     data?: PaginatedDataClass;
   }
-  return PaginatedResponseClass;
+  return PaginatedResponseClass as Type<IPaginatedResponse<T>>;
 }
 
 @ObjectType()

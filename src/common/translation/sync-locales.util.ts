@@ -72,8 +72,8 @@ export function syncLocales(options?: SyncLocalesOptions): string {
                     if (shouldCopy) {
                       fs.copyFileSync(srcFile, destFile);
                     }
-                  } catch (err: any) {
-                    if (err?.code !== 'EBUSY') {
+                  } catch (err: unknown) {
+                    if ((err as NodeJS.ErrnoException)?.code !== 'EBUSY') {
                       throw err;
                     }
                   }

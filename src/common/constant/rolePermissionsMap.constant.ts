@@ -14,6 +14,11 @@ export const rolePermissionsMap: Record<Role, Permission[]> = {
     // Notification
     Permission.NOTIFICATION_SEND,
     Permission.NOTIFICATION_MANAGE,
+
+    // Payment
+    Permission.PAYMENT_INITIATE,
+    Permission.PAYMENT_VIEW,
+    Permission.PAYMENT_MANAGE,
   ],
 
   [Role.USER]: [
@@ -22,5 +27,9 @@ export const rolePermissionsMap: Record<Role, Permission[]> = {
     Permission.CHANGE_PASSWORD,
     Permission.FORGOT_PASSWORD,
     Permission.LOGOUT,
+
+    // Payment
+    Permission.PAYMENT_INITIATE,
+    Permission.PAYMENT_VIEW,
   ],
 };

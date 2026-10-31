@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { UserModule } from './modules/user/user.module.js';
 import { RealtimeModule } from './modules/realtime/realtime.module.js';
 import { NotificationModule } from './modules/notification/notification.module.js';
+import { PaymentModule } from './modules/payment/payment.module.js';
 import { GraphQLExceptionFilter } from './common/filters/graphql-exception.filter.js';
 import { GraphQLResponseInterceptor } from './common/interceptors/graphql-response.interceptor.js';
 import { AppResolver } from './app.resolver.js';
@@ -34,6 +35,7 @@ import { MetricsInterceptor } from './common/metrics/interceptor/metrics.interce
     
     RealtimeModule,
     NotificationModule,
+    PaymentModule,
   ],
   providers: [
     AppResolver,

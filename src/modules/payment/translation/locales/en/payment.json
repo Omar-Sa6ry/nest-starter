@@ -1,0 +1,13 @@
+{
+  "INITIATE_SUCCESS": "Payment initiated successfully",
+  "VERIFY_SUCCESS": "Payment verified successfully",
+  "REFUND_SUCCESS": "Payment refunded successfully",
+  "TRANSACTION_RETRIEVED": "Payment transaction retrieved successfully",
+  "TRANSACTIONS_RETRIEVED": "Payment transactions retrieved successfully",
+  "NOT_FOUND": "Payment transaction not found",
+  "PROVIDER_NOT_CONFIGURED": "Payment provider is not properly configured",
+  "PAYMENT_FAILED": "Payment process failed",
+  "UNAUTHORIZED": "Unauthorized payment action",
+  "WEBHOOK_PROCESSED": "Webhook processed successfully",
+  "WEBHOOK_INVALID_SIGNATURE": "Invalid webhook signature"
+}
