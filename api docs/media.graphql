@@ -1,5 +1,7 @@
 #`createUploadSession` (Recommended for Resumable/Chunked Uploads)
+Initializes a resumable upload session with chunking and presigned URLs for each part.
 
+```graphql
 mutation CreateUploadSession($input: CreateUploadSessionInput!) {
   createUploadSession(input: $input) {
     success
@@ -21,6 +23,7 @@ mutation CreateUploadSession($input: CreateUploadSessionInput!) {
     }
   }
 }
+```
 
 *Variables:*
 ```json

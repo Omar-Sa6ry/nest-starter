@@ -70,7 +70,3 @@ src/schema.gql
 
 # NPM Package
 .npmrc
-
-# Notes For Engineer
-notes.txt
-media-frontend/
