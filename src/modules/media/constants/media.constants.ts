@@ -1,3 +1,5 @@
+import { registerEnumType } from '@nestjs/graphql';
+
 export const MEDIA_CONSTANTS = {
   MAX_FILE_SIZE_BYTES: 100 * 1024 * 1024 * 1024, // 100 GB (Enterprise scale)
   MIN_FILE_SIZE_BYTES: 1,
@@ -45,13 +47,46 @@ export enum VersionType {
 
 // State transition validation matrix matching system design standards
 export const ALLOWED_STATUS_TRANSITIONS: Record<MediaStatus, MediaStatus[]> = {
-  [MediaStatus.PENDING]: [MediaStatus.UPLOADING, MediaStatus.READY, MediaStatus.FAILED, MediaStatus.ABORTED],
-  [MediaStatus.UPLOADING]: [MediaStatus.UPLOADED, MediaStatus.READY, MediaStatus.ABORTED, MediaStatus.FAILED],
-  [MediaStatus.UPLOADED]: [MediaStatus.PROCESSING, MediaStatus.READY, MediaStatus.FAILED],
-  [MediaStatus.PROCESSING]: [MediaStatus.READY, MediaStatus.FAILED, MediaStatus.QUARANTINED],
+  [MediaStatus.PENDING]: [
+    MediaStatus.UPLOADING,
+    MediaStatus.READY,
+    MediaStatus.FAILED,
+    MediaStatus.ABORTED,
+  ],
+  [MediaStatus.UPLOADING]: [
+    MediaStatus.UPLOADED,
+    MediaStatus.READY,
+    MediaStatus.ABORTED,
+    MediaStatus.FAILED,
+  ],
+  [MediaStatus.UPLOADED]: [
+    MediaStatus.PROCESSING,
+    MediaStatus.READY,
+    MediaStatus.FAILED,
+  ],
+  [MediaStatus.PROCESSING]: [
+    MediaStatus.READY,
+    MediaStatus.FAILED,
+    MediaStatus.QUARANTINED,
+  ],
   [MediaStatus.READY]: [MediaStatus.DELETED],
   [MediaStatus.FAILED]: [MediaStatus.DELETED],
   [MediaStatus.QUARANTINED]: [MediaStatus.DELETED],
   [MediaStatus.ABORTED]: [MediaStatus.DELETED],
   [MediaStatus.DELETED]: [],
 };
+
+registerEnumType(MediaStatus, {
+  name: 'MediaStatus',
+  description: 'Lifecycle statuses of a media item',
+});
+
+registerEnumType(MediaTypeCategory, {
+  name: 'MediaTypeCategory',
+  description: 'Top-level media type classification',
+});
+
+registerEnumType(VersionType, {
+  name: 'VersionType',
+  description: 'Types of renditions or versions generated for a media file',
+});

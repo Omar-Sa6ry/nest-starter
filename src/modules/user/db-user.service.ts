@@ -16,6 +16,7 @@ import { User } from './entity/user.entity.js';
 import { IUserStats } from './interfaces/IUserStats.interface.js';
 import { IPaginatedResult } from '../../common/interfaces/IPaginatedResult.interface.js';
 import { USER_I18N } from './constants/user-i18n.constants.js';
+import { MediaService } from '../media/services/media.service.js';
 
 @Injectable()
 export class DbUserService {
@@ -25,6 +26,7 @@ export class DbUserService {
     @Inject(PASSWORD_HASHER)
     private readonly passwordHasher: IPasswordHasher,
     private readonly i18n: I18nService,
+    private readonly mediaService: MediaService,
   ) {}
 
   async findById(id: string): Promise<User | null> {
@@ -77,15 +79,17 @@ export class DbUserService {
       throw new BadRequestException(this.i18n.t(USER_I18N.NOT_FOUND));
     }
 
-    const { firstName, lastName, imageUrl } = input;
+    const { firstName, lastName, avatarMediaId } = input;
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
 
-    if (imageUrl) {
-      if (!isHttpUrl(imageUrl)) {
-        throw new BadRequestException(this.i18n.t(USER_I18N.INVALID_IMAGE_URL));
+    if (avatarMediaId) {
+      const media = await this.mediaService.findById(avatarMediaId);
+      if (!media) {
+        throw new BadRequestException('Avatar media not found');
       }
-      user.imageUrl = imageUrl;
+      const download = await this.mediaService.getDownloadUrl(userId, avatarMediaId);
+      user.imageUrl = download.downloadUrl || download.url;
     }
 
     return this.userRepo.save(user);
@@ -180,14 +184,5 @@ export class DbUserService {
       : 100;
 
     return { totalUsers, usersThisMonth, percentageIncrease };
-  }
-}
-
-function isHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
   }
 }

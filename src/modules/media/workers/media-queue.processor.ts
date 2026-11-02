@@ -3,10 +3,18 @@ import { Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Media } from '../entity/media.entity.js';
-import { MediaJob, MediaJobStatus, MediaJobType } from '../entity/media-job.entity.js';
+import { Media } from '../entities/media.entity.js';
+import {
+  MediaJob,
+  MediaJobStatus,
+  MediaJobType,
+} from '../entities/media-job.entity.js';
 import { MediaStatus } from '../constants/media.constants.js';
-import { MEDIA_QUEUE_NAME, MEDIA_JOB_NAMES, type IMediaJobData } from '../constants/media-queue.constants.js';
+import {
+  MEDIA_QUEUE_NAME,
+  MEDIA_JOB_NAMES,
+  type IMediaJobData,
+} from '../constants/media-queue.constants.js';
 import { MediaSseService } from '../services/media-sse.service.js';
 
 @Processor(MEDIA_QUEUE_NAME)
@@ -25,7 +33,9 @@ export class MediaQueueProcessor extends WorkerHost {
 
   async process(job: Job<IMediaJobData, void, string>): Promise<void> {
     const { mediaId } = job.data;
-    this.logger.log(`[BullMQ] Processing job ${job.name} (ID: ${job.id}) for media ${mediaId}`);
+    this.logger.log(
+      `[BullMQ] Processing job ${job.name} (ID: ${job.id}) for media ${mediaId}`,
+    );
 
     const media = await this.mediaRepo.findOne({ where: { id: mediaId } });
     if (!media) {
@@ -72,7 +82,10 @@ export class MediaQueueProcessor extends WorkerHost {
         });
 
         // Step 4: Finalize & Mark Ready
-        await this.mediaRepo.update({ id: mediaId }, { status: MediaStatus.READY });
+        await this.mediaRepo.update(
+          { id: mediaId },
+          { status: MediaStatus.READY },
+        );
 
         mediaJob.status = MediaJobStatus.COMPLETED;
         mediaJob.completedAt = new Date();
@@ -82,12 +95,15 @@ export class MediaQueueProcessor extends WorkerHost {
           mediaId,
           status: MediaStatus.READY,
           progressPercent: 100,
-          message: 'BullMQ: Media processing completed and ready for distribution',
+          message:
+            'BullMQ: Media processing completed and ready for distribution',
           timestamp: new Date().toISOString(),
         });
       }
     } catch (error: unknown) {
-      this.logger.error(`[BullMQ] Failed job ${job.id} for media ${mediaId}: ${String(error)}`);
+      this.logger.error(
+        `[BullMQ] Failed job ${job.id} for media ${mediaId}: ${String(error)}`,
+      );
       mediaJob.status = MediaJobStatus.FAILED;
       mediaJob.lastError = String(error);
       await this.jobRepo.save(mediaJob);
@@ -95,4 +111,3 @@ export class MediaQueueProcessor extends WorkerHost {
     }
   }
 }
-

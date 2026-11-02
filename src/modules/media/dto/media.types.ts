@@ -1,20 +1,9 @@
-import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
-import { MediaStatus, MediaTypeCategory, VersionType } from '../constants/media.constants.js';
-
-registerEnumType(MediaStatus, {
-  name: 'MediaStatus',
-  description: 'Lifecycle statuses of a media item',
-});
-
-registerEnumType(MediaTypeCategory, {
-  name: 'MediaTypeCategory',
-  description: 'Top-level media type classification',
-});
-
-registerEnumType(VersionType, {
-  name: 'VersionType',
-  description: 'Types of renditions or versions generated for a media file',
-});
+import { ObjectType, Field, Int } from '@nestjs/graphql';
+import {
+  MediaStatus,
+  MediaTypeCategory,
+  VersionType,
+} from '../constants/media.constants.js';
 
 @ObjectType({ description: 'Presigned upload part item for multipart uploads' })
 export class PresignedPartUrlType {
@@ -23,9 +12,14 @@ export class PresignedPartUrlType {
 
   @Field(() => String)
   uploadUrl!: string;
+
+  @Field(() => String, { nullable: true })
+  presignedUrl?: string;
 }
 
-@ObjectType({ description: 'Response when initiating a direct single or multipart upload' })
+@ObjectType({
+  description: 'Response when initiating a direct single or multipart upload',
+})
 export class PresignedUploadResponseData {
   @Field(() => String)
   mediaId!: string;
@@ -117,6 +111,13 @@ export class MediaType {
   @Field(() => String)
   id!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Alias for id to ensure backward compatibility with frontend clients',
+  })
+  mediaId?: string;
+
   @Field(() => String)
   fileName!: string;
 
@@ -157,7 +158,9 @@ export class MediaType {
   updatedAt!: string;
 }
 
-@ObjectType({ description: 'Standard General Response wrapper for single Media' })
+@ObjectType({
+  description: 'Standard General Response wrapper for single Media',
+})
 export class MediaResponse {
   @Field(() => Boolean)
   success!: boolean;
@@ -175,7 +178,10 @@ export class MediaResponse {
   data?: MediaType | null;
 }
 
-@ObjectType({ description: 'Standard General Response wrapper for presigned upload creation' })
+@ObjectType({
+  description:
+    'Standard General Response wrapper for presigned upload creation',
+})
 export class PresignedUploadResponse {
   @Field(() => Boolean)
   success!: boolean;
@@ -195,17 +201,28 @@ export class PresignedUploadResponse {
 
 @ObjectType({ description: 'Download URL result wrapper' })
 export class DownloadUrlData {
-  @Field(() => String)
-  mediaId!: string;
+  @Field(() => String, { nullable: true })
+  mediaId?: string;
 
   @Field(() => String)
   downloadUrl!: string;
 
+  @Field(() => String, { nullable: true })
+  url?: string;
+
   @Field(() => Int)
   expiresInSeconds!: number;
+
+  @Field(() => Number, { nullable: true })
+  expiresAt?: number;
+
+  @Field(() => String, { nullable: true })
+  contentType?: string;
 }
 
-@ObjectType({ description: 'Standard General Response wrapper for download URL' })
+@ObjectType({
+  description: 'Standard General Response wrapper for download URL',
+})
 export class DownloadUrlResponse {
   @Field(() => Boolean)
   success!: boolean;
@@ -241,7 +258,9 @@ export class PaginatedMediaData {
   totalPages!: number;
 }
 
-@ObjectType({ description: 'Standard General Response wrapper for paginated media' })
+@ObjectType({
+  description: 'Standard General Response wrapper for paginated media',
+})
 export class PaginatedMediaResponse {
   @Field(() => Boolean)
   success!: boolean;
@@ -259,7 +278,9 @@ export class PaginatedMediaResponse {
   data?: PaginatedMediaData | null;
 }
 
-@ObjectType({ description: 'Standard General Response wrapper for quota usage' })
+@ObjectType({
+  description: 'Standard General Response wrapper for quota usage',
+})
 export class QuotaResponse {
   @Field(() => Boolean)
   success!: boolean;
@@ -275,6 +296,47 @@ export class QuotaResponse {
 
   @Field(() => QuotaUsageType, { nullable: true })
   data?: QuotaUsageType | null;
+}
+
+@ObjectType({ description: 'Upload status details for resumable uploads' })
+export class UploadStatusData {
+  @Field(() => String)
+  uploadId!: string;
+
+  @Field(() => String)
+  status!: string;
+
+  @Field(() => Int)
+  totalParts!: number;
+
+  @Field(() => Int)
+  completedParts!: number;
+
+  @Field(() => [Int])
+  missingParts!: number[];
+
+  @Field(() => Number)
+  expiresAt!: number;
+}
+
+@ObjectType({
+  description: 'Standard General Response wrapper for upload status',
+})
+export class UploadStatusResponse {
+  @Field(() => Boolean)
+  success!: boolean;
+
+  @Field(() => Int)
+  statusCode!: number;
+
+  @Field(() => String)
+  message!: string;
+
+  @Field(() => String)
+  timeStamp!: string;
+
+  @Field(() => UploadStatusData, { nullable: true })
+  data?: UploadStatusData | null;
 }
 
 @ObjectType({ description: 'General Operation Response' })

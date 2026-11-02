@@ -1,7 +1,7 @@
 # Compiled Output 
-/dist
-/node_modules
-/build
+dist
+node_modules
+build
 
 # TypeScript Build Cache
 *.tsbuildinfo
@@ -73,3 +73,4 @@ src/schema.gql
 
 # Notes For Engineer
 notes.txt
+media-frontend/

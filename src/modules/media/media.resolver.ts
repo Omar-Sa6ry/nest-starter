@@ -10,12 +10,15 @@ import {
   PaginatedMediaResponse,
   QuotaResponse,
   MediaGeneralOperationResponse,
+  UploadStatusResponse,
 } from './dto/media.types.js';
 import {
   RequestUploadInput,
   InitiateMultipartUploadInput,
   CompleteMultipartUploadInput,
   AbortMultipartUploadInput,
+  CreateUploadSessionInput,
+  CompleteUploadInput,
 } from './inputs/media.inputs.js';
 import { Auth } from '../../common/decorator/auth.decorator.js';
 import { Permission } from '../../common/constant/enum.constant.js';
@@ -120,11 +123,94 @@ export class MediaResolver {
       statusCode: 200,
       message: await this.i18n.t(MEDIA_I18N.DOWNLOAD_URL_GENERATED),
       timeStamp: new Date().toISOString(),
-      data: {
-        mediaId,
-        downloadUrl: download.downloadUrl,
-        expiresInSeconds: download.expiresInSeconds,
-      },
+      data: download,
+    };
+  }
+
+  @Query(() => DownloadUrlResponse)
+  @Auth([Permission.MEDIA_VIEW])
+  async downloadUrl(
+    @CurrentUser() user: IAuthenticatedUser,
+    @Args('mediaId') mediaId: string,
+    @Args('versionType', { type: () => String, nullable: true }) versionType?: string,
+    @Args('expirySeconds', { type: () => Int, nullable: true }) expirySeconds?: number,
+  ): Promise<DownloadUrlResponse> {
+    const download = await this.mediaService.getDownloadUrl(
+      user.id,
+      mediaId,
+      versionType,
+      expirySeconds,
+    );
+    return {
+      success: true,
+      statusCode: 200,
+      message: await this.i18n.t(MEDIA_I18N.DOWNLOAD_URL_GENERATED),
+      timeStamp: new Date().toISOString(),
+      data: download,
+    };
+  }
+
+  @Mutation(() => PresignedUploadResponse)
+  @Auth([Permission.MEDIA_UPLOAD])
+  async createUploadSession(
+    @CurrentUser() user: IAuthenticatedUser,
+    @Args('input') input: CreateUploadSessionInput,
+  ): Promise<PresignedUploadResponse> {
+    const data = await this.mediaService.createUploadSession(user.id, input);
+    return {
+      success: true,
+      statusCode: 200,
+      message: await this.i18n.t(MEDIA_I18N.MULTIPART_INITIATED),
+      timeStamp: new Date().toISOString(),
+      data,
+    };
+  }
+
+  @Mutation(() => MediaResponse)
+  @Auth([Permission.MEDIA_UPLOAD])
+  async completeUpload(
+    @CurrentUser() user: IAuthenticatedUser,
+    @Args('input') input: CompleteUploadInput,
+  ): Promise<MediaResponse> {
+    const res = await this.mediaService.completeUploadByUploadId(user.id, input);
+    const media = await this.mediaService.findById(res.mediaId);
+    return {
+      success: true,
+      statusCode: 200,
+      message: await this.i18n.t(MEDIA_I18N.UPLOAD_COMPLETED),
+      timeStamp: new Date().toISOString(),
+      data: media,
+    };
+  }
+
+  @Mutation(() => MediaGeneralOperationResponse)
+  @Auth([Permission.MEDIA_UPLOAD])
+  async abortUpload(
+    @CurrentUser() user: IAuthenticatedUser,
+    @Args('uploadId') uploadId: string,
+  ): Promise<MediaGeneralOperationResponse> {
+    await this.mediaService.abortUploadByUploadId(user.id, uploadId);
+    return {
+      success: true,
+      statusCode: 200,
+      message: await this.i18n.t(MEDIA_I18N.UPLOAD_ABORTED),
+      timeStamp: new Date().toISOString(),
+    };
+  }
+
+  @Query(() => UploadStatusResponse)
+  @Auth([Permission.MEDIA_VIEW])
+  async uploadStatus(
+    @CurrentUser() user: IAuthenticatedUser,
+    @Args('uploadId') uploadId: string,
+  ): Promise<UploadStatusResponse> {
+    const data = await this.mediaService.getUploadStatus(user.id, uploadId);
+    return {
+      success: true,
+      statusCode: 200,
+      message: 'Upload status retrieved successfully',
+      timeStamp: new Date().toISOString(),
+      data,
     };
   }
 

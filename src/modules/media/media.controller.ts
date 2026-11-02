@@ -12,6 +12,12 @@ export class MediaController {
   constructor(private readonly sseService: MediaSseService) {}
 
   @Public()
+  @Sse('events')
+  streamAllEvents(): Observable<ISseMessageEvent> {
+    return this.sseService.streamAll();
+  }
+
+  @Public()
   @Sse('events/:mediaId')
   streamMediaEvents(
     @Param('mediaId') mediaId: string,

@@ -32,7 +32,9 @@ export class MediaValidationService {
 
     const allowed = mimeMap[ext];
     if (!allowed) {
-      this.logger.debug(`File extension ${ext} not strictly mapped to MIME ${mimeType}`);
+      this.logger.debug(
+        `File extension ${ext} not strictly mapped to MIME ${mimeType}`,
+      );
       return true;
     }
 
@@ -61,7 +63,12 @@ export class MediaValidationService {
 
     // JPEG: FF D8 FF
     if (lowerMime === 'image/jpeg') {
-      return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+      return (
+        buffer.length >= 3 &&
+        buffer[0] === 0xff &&
+        buffer[1] === 0xd8 &&
+        buffer[2] === 0xff
+      );
     }
 
     // PNG: 89 50 4E 47 0D 0A 1A 0A

@@ -107,3 +107,41 @@ export class AbortMultipartUploadInput {
   mediaId!: string;
 }
 
+@InputType()
+export class CreateUploadSessionInput {
+  @Field(() => String)
+  @IsString()
+  @IsNotEmpty()
+  fileName!: string;
+
+  @Field(() => String)
+  @IsString()
+  @IsNotEmpty()
+  contentType!: string;
+
+  @Field(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(MEDIA_CONSTANTS.MAX_FILE_SIZE_BYTES)
+  size!: number;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  checksum?: string;
+}
+
+@InputType()
+export class CompleteUploadInput {
+  @Field(() => String)
+  @IsString()
+  @IsNotEmpty()
+  uploadId!: string;
+
+  @Field(() => [UploadPartInput])
+  @ValidateNested({ each: true })
+  @Type(() => UploadPartInput)
+  @ArrayMinSize(1)
+  parts!: UploadPartInput[];
+}
+

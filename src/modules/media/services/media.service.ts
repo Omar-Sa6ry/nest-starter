@@ -6,9 +6,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Media } from '../entity/media.entity.js';
-import { MediaVersion } from '../entity/media-version.entity.js';
-import { UploadSession, UploadSessionStatus } from '../entity/upload-session.entity.js';
+import { Media } from '../entities/media.entity.js';
+import { MediaVersion } from '../entities/media-version.entity.js';
+import {
+  UploadSession,
+  UploadSessionStatus,
+} from '../entities/upload-session.entity.js';
 import { S3StorageService } from './s3-storage.service.js';
 import { MediaSseService } from './media-sse.service.js';
 import { MediaQuotaService } from './media-quota.service.js';
@@ -24,13 +27,18 @@ import type {
   RequestUploadInput,
   InitiateMultipartUploadInput,
   CompleteMultipartUploadInput,
-} from '../inputs/media.inputs.js';
+  CreateUploadSessionInput,
+  CompleteUploadInput,
+} from '../input/media.inputs.js';
 import type {
   PresignedUploadResponseData,
   MediaType,
   PaginatedMediaData,
   QuotaUsageType,
+  UploadStatusData,
+  DownloadUrlData,
 } from '../dto/media.types.js';
+import { MediaWorkerService } from './media-worker.service.js';
 
 @Injectable()
 export class MediaService {
@@ -46,6 +54,7 @@ export class MediaService {
     private readonly quotaService: MediaQuotaService,
     private readonly validationService: MediaValidationService,
     private readonly configService: ConfigService,
+    private readonly workerService: MediaWorkerService,
   ) {}
 
   async requestUpload(
@@ -56,11 +65,19 @@ export class MediaService {
     await this.quotaService.checkCanUpload(userId, input.sizeBytes);
 
     // 2. MIME & Extension validation
-    if (!this.validationService.validateDeclaredType(input.fileName, input.mimeType)) {
-      throw new BadRequestException(`File extension does not match declared MIME type ${input.mimeType}`);
+    if (
+      !this.validationService.validateDeclaredType(
+        input.fileName,
+        input.mimeType,
+      )
+    ) {
+      throw new BadRequestException(
+        `File extension does not match declared MIME type ${input.mimeType}`,
+      );
     }
 
-    const isMultipart = input.sizeBytes > MEDIA_CONSTANTS.MULTIPART_THRESHOLD_BYTES;
+    const isMultipart =
+      input.sizeBytes > MEDIA_CONSTANTS.MULTIPART_THRESHOLD_BYTES;
     const bucket = this.storage.getDefaultBucket();
 
     // Prevent directory traversal or malformed characters in fileName
@@ -122,8 +139,15 @@ export class MediaService {
   ): Promise<PresignedUploadResponseData> {
     await this.quotaService.checkCanUpload(userId, input.sizeBytes);
 
-    if (!this.validationService.validateDeclaredType(input.fileName, input.mimeType)) {
-      throw new BadRequestException(`File extension does not match declared MIME type ${input.mimeType}`);
+    if (
+      !this.validationService.validateDeclaredType(
+        input.fileName,
+        input.mimeType,
+      )
+    ) {
+      throw new BadRequestException(
+        `File extension does not match declared MIME type ${input.mimeType}`,
+      );
     }
 
     const bucket = this.storage.getDefaultBucket();
@@ -173,9 +197,16 @@ export class MediaService {
     );
 
     // Automatically compute partSize: Must satisfy S3 rule (max 10,000 parts) and min part size (5MB)
-    const minPartSizeForFile = Math.ceil(totalBytes / MEDIA_CONSTANTS.MAX_PARTS_COUNT);
-    const configuredPartSize = customPartSize || MEDIA_CONSTANTS.DEFAULT_PART_SIZE_BYTES;
-    const partSize = Math.max(configuredPartSize, minPartSizeForFile, MEDIA_CONSTANTS.MIN_PART_SIZE_BYTES);
+    const minPartSizeForFile = Math.ceil(
+      totalBytes / MEDIA_CONSTANTS.MAX_PARTS_COUNT,
+    );
+    const configuredPartSize =
+      customPartSize || MEDIA_CONSTANTS.DEFAULT_PART_SIZE_BYTES;
+    const partSize = Math.max(
+      configuredPartSize,
+      minPartSizeForFile,
+      MEDIA_CONSTANTS.MIN_PART_SIZE_BYTES,
+    );
     const partsCount = Math.ceil(totalBytes / partSize);
 
     if (partsCount > MEDIA_CONSTANTS.MAX_PARTS_COUNT) {
@@ -184,7 +215,11 @@ export class MediaService {
       );
     }
 
-    const parts: Array<{ partNumber: number; uploadUrl: string }> = [];
+    const parts: Array<{
+      partNumber: number;
+      uploadUrl: string;
+      presignedUrl: string;
+    }> = [];
     for (let partNumber = 1; partNumber <= partsCount; partNumber++) {
       const uploadUrl = await this.storage.getPresignedUploadPartUrl(
         bucket,
@@ -193,7 +228,7 @@ export class MediaService {
         partNumber,
         expiresIn,
       );
-      parts.push({ partNumber, uploadUrl });
+      parts.push({ partNumber, uploadUrl, presignedUrl: uploadUrl });
     }
 
     this.transitionState(media, MediaStatus.UPLOADING);
@@ -255,7 +290,9 @@ export class MediaService {
     }
 
     if (!media.uploadId) {
-      throw new BadRequestException(`Media ${input.mediaId} is not a multipart upload`);
+      throw new BadRequestException(
+        `Media ${input.mediaId} is not a multipart upload`,
+      );
     }
 
     const parts = input.parts.map((p) => ({
@@ -281,7 +318,9 @@ export class MediaService {
     if (!isValid) {
       this.transitionState(media, MediaStatus.FAILED);
       await this.mediaRepo.save(media);
-      throw new BadRequestException('Storage object integrity verification failed');
+      throw new BadRequestException(
+        'Storage object integrity verification failed',
+      );
     }
 
     this.transitionState(media, MediaStatus.READY);
@@ -292,13 +331,31 @@ export class MediaService {
     const saved = await this.mediaRepo.save(media);
 
     // Register original version rendition
-    await this.registerVersion(saved, VersionType.ORIGINAL, saved.storageKey, saved.sizeBytes);
+    await this.registerVersion(
+      saved,
+      VersionType.ORIGINAL,
+      saved.storageKey,
+      saved.sizeBytes,
+    );
 
     // Update upload session
     await this.sessionRepo.update(
       { mediaId: media.id },
       { status: UploadSessionStatus.COMPLETED, completedParts: input.parts },
     );
+
+    // Dispatch background processing job (transcoding, renditions, malware scan)
+    await this.workerService
+      .dispatchProcessingJob({
+        mediaId: saved.id,
+        storageKey: saved.storageKey,
+        bucket: saved.storageBucket,
+        mimeType: saved.mimeType,
+        userId,
+      })
+      .catch(() => {
+        // In dev or without redis bullmq active, log and proceed gracefully
+      });
 
     this.sseService.emit({
       mediaId: saved.id,
@@ -311,7 +368,10 @@ export class MediaService {
     return this.mapToType(saved);
   }
 
-  async verifyDirectUpload(userId: string, mediaId: string): Promise<MediaType> {
+  async verifyDirectUpload(
+    userId: string,
+    mediaId: string,
+  ): Promise<MediaType> {
     const media = await this.mediaRepo.findOne({
       where: { id: mediaId, uploadedById: userId },
     });
@@ -336,7 +396,12 @@ export class MediaService {
     this.transitionState(media, MediaStatus.READY);
     const saved = await this.mediaRepo.save(media);
 
-    await this.registerVersion(saved, VersionType.ORIGINAL, saved.storageKey, saved.sizeBytes);
+    await this.registerVersion(
+      saved,
+      VersionType.ORIGINAL,
+      saved.storageKey,
+      saved.sizeBytes,
+    );
 
     this.sseService.emit({
       mediaId: saved.id,
@@ -385,7 +450,9 @@ export class MediaService {
   async getDownloadUrl(
     userId: string,
     mediaId: string,
-  ): Promise<{ downloadUrl: string; expiresInSeconds: number }> {
+    versionType?: string,
+    expirySeconds?: number,
+  ): Promise<DownloadUrlData> {
     const media = await this.mediaRepo.findOne({
       where: { id: mediaId },
     });
@@ -399,19 +466,120 @@ export class MediaService {
     }
 
     const expiresIn =
+      expirySeconds ||
       this.configService.get<number>('MEDIA_PRESIGNED_EXPIRES_IN') ||
       MEDIA_CONSTANTS.DEFAULT_PRESIGNED_EXPIRES_SECONDS;
 
+    let targetKey = media.storageKey;
+    if (versionType && versionType !== VersionType.ORIGINAL) {
+      const rendition = await this.versionRepo.findOne({
+        where: { mediaId: media.id, versionType: versionType as VersionType },
+      });
+      if (rendition) {
+        targetKey = rendition.storageKey;
+      }
+    }
+
     const downloadUrl = await this.storage.getPresignedGetUrl(
       media.storageBucket,
-      media.storageKey,
+      targetKey,
       expiresIn,
     );
 
     return {
+      mediaId,
       downloadUrl,
+      url: downloadUrl,
       expiresInSeconds: expiresIn,
+      expiresAt: Math.floor(Date.now() / 1000) + expiresIn,
+      contentType: media.mimeType,
     };
+  }
+
+  async getUploadStatus(
+    userId: string,
+    uploadId: string,
+  ): Promise<UploadStatusData> {
+    const session = await this.sessionRepo.findOne({
+      where: { s3UploadId: uploadId, userId },
+    });
+
+    if (!session) {
+      throw new NotFoundException(
+        `Upload session not found for upload ID ${uploadId}`,
+      );
+    }
+
+    const completedPartNumbers = new Set(
+      (session.completedParts || []).map((p) => p.partNumber),
+    );
+
+    const missingParts: number[] = [];
+    for (let i = 1; i <= session.totalParts; i++) {
+      if (!completedPartNumbers.has(i)) {
+        missingParts.push(i);
+      }
+    }
+
+    return {
+      uploadId,
+      status: session.status,
+      totalParts: session.totalParts,
+      completedParts: completedPartNumbers.size,
+      missingParts,
+      expiresAt: Math.floor(session.expiresAt.getTime() / 1000),
+    };
+  }
+
+  async abortUploadByUploadId(userId: string, uploadId: string): Promise<void> {
+    const session = await this.sessionRepo.findOne({
+      where: { s3UploadId: uploadId, userId },
+    });
+
+    if (!session) {
+      throw new NotFoundException(
+        `Upload session not found for upload ID ${uploadId}`,
+      );
+    }
+
+    await this.abortMultipartUpload(userId, session.mediaId);
+  }
+
+  async completeUploadByUploadId(
+    userId: string,
+    input: CompleteUploadInput,
+  ): Promise<{ mediaId: string; status: string }> {
+    const session = await this.sessionRepo.findOne({
+      where: { s3UploadId: input.uploadId, userId },
+    });
+
+    if (!session) {
+      throw new NotFoundException(
+        `Upload session not found for upload ID ${input.uploadId}`,
+      );
+    }
+
+    const media = await this.completeMultipartUpload(userId, {
+      mediaId: session.mediaId,
+      parts: input.parts,
+    });
+
+    return {
+      mediaId: media.id,
+      status: media.status,
+    };
+  }
+
+  async createUploadSession(
+    userId: string,
+    input: CreateUploadSessionInput,
+  ): Promise<PresignedUploadResponseData> {
+    return this.initiateMultipartUpload(userId, {
+      fileName: input.fileName,
+      mimeType: input.contentType,
+      sizeBytes: input.size,
+      isPublic: false,
+    });
   }
 
   async findById(mediaId: string): Promise<MediaType> {
@@ -503,10 +671,18 @@ export class MediaService {
     if (mime.startsWith('image/')) return MediaTypeCategory.IMAGE;
     if (mime.startsWith('video/')) return MediaTypeCategory.VIDEO;
     if (mime.startsWith('audio/')) return MediaTypeCategory.AUDIO;
-    if (mime.includes('pdf') || mime.includes('document') || mime.includes('text')) {
+    if (
+      mime.includes('pdf') ||
+      mime.includes('document') ||
+      mime.includes('text')
+    ) {
       return MediaTypeCategory.DOCUMENT;
     }
-    if (mime.includes('zip') || mime.includes('tar') || mime.includes('archive')) {
+    if (
+      mime.includes('zip') ||
+      mime.includes('tar') ||
+      mime.includes('archive')
+    ) {
       return MediaTypeCategory.ARCHIVE;
     }
     return MediaTypeCategory.OTHER;
@@ -515,6 +691,7 @@ export class MediaService {
   private mapToType(entity: Media): MediaType {
     return {
       id: entity.id,
+      mediaId: entity.id,
       fileName: entity.fileName,
       storageKey: entity.storageKey,
       mimeType: entity.mimeType,

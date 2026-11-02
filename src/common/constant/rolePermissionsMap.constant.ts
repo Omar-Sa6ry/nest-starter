@@ -19,6 +19,11 @@ export const rolePermissionsMap: Record<Role, Permission[]> = {
     Permission.PAYMENT_INITIATE,
     Permission.PAYMENT_VIEW,
     Permission.PAYMENT_MANAGE,
+
+    // Media
+    Permission.MEDIA_UPLOAD,
+    Permission.MEDIA_VIEW,
+    Permission.MEDIA_DELETE,
   ],
 
   [Role.USER]: [
@@ -31,5 +36,10 @@ export const rolePermissionsMap: Record<Role, Permission[]> = {
     // Payment
     Permission.PAYMENT_INITIATE,
     Permission.PAYMENT_VIEW,
+
+    // Media
+    Permission.MEDIA_UPLOAD,
+    Permission.MEDIA_VIEW,
+    Permission.MEDIA_DELETE,
   ],
 };

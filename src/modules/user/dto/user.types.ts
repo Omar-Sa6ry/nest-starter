@@ -68,5 +68,5 @@ export class UpdateProfileInput {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  imageUrl?: string;
+  avatarMediaId?: string;
 }

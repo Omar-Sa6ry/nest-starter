@@ -1,12 +1,94 @@
-# Media API Documentation (GraphQL & SSE)
+#`createUploadSession` (Recommended for Resumable/Chunked Uploads)
 
-Production-grade media management for direct S3-compatible cloud storage (AWS S3, MinIO) with support for huge files (up to 100 GB) via Presigned Single and Multipart Upload URLs, and real-time lifecycle tracking using Server-Sent Events (SSE).
+mutation CreateUploadSession($input: CreateUploadSessionInput!) {
+  createUploadSession(input: $input) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      mediaId
+      uploadId
+      s3UploadId
+      partSize
+      totalParts
+      expiresAt
+      presignedParts {
+        partNumber
+        presignedUrl
+        uploadUrl
+      }
+    }
+  }
+}
+
+*Variables:*
+```json
+{
+  "input": {
+    "fileName": "sample_video.mp4",
+    "contentType": "video/mp4",
+    "size": 104857600,
+    "checksum": "optional-sha256-hex"
+  }
+}
+```
 
 ---
 
-## 1. GraphQL Schema
+#### `completeUpload`
+Completes a session-based resumable upload using the `uploadId` and the uploaded parts with their ETags.
 
-### 1.1 Mutations
+```graphql
+mutation CompleteUpload($input: CompleteUploadInput!) {
+  completeUpload(input: $input) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      id
+      mediaId
+      fileName
+      storageKey
+      mimeType
+      sizeBytes
+      status
+    }
+  }
+}
+```
+
+*Variables:*
+```json
+{
+  "input": {
+    "uploadId": "s3-upload-id-string",
+    "parts": [
+      { "partNumber": 1, "eTag": "d41d8cd98f00b204e9800998ecf8427e" },
+      { "partNumber": 2, "eTag": "098f6bcd4621d373cade4e832627b4f6" }
+    ]
+  }
+}
+```
+
+---
+
+#### `abortUpload`
+Aborts an in-progress resumable upload session by `uploadId`.
+
+```graphql
+mutation AbortUpload($uploadId: String!) {
+  abortUpload(uploadId: $uploadId) {
+    success
+    statusCode
+    message
+    timeStamp
+  }
+}
+```
+
+---
 
 #### `requestUploadUrl`
 Generates a direct presigned PUT URL for files smaller than 50 MB, or automatically triggers multipart upload for files larger than 50 MB (up to 100 GB).
@@ -28,6 +110,7 @@ mutation RequestUploadUrl($input: RequestUploadInput!) {
       parts {
         partNumber
         uploadUrl
+        presignedUrl
       }
     }
   }
@@ -67,6 +150,7 @@ mutation InitiateMultipartUpload($input: InitiateMultipartUploadInput!) {
       parts {
         partNumber
         uploadUrl
+        presignedUrl
       }
     }
   }
@@ -87,6 +171,7 @@ mutation CompleteMultipartUpload($input: CompleteMultipartUploadInput!) {
     timeStamp
     data {
       id
+      mediaId
       fileName
       storageKey
       mimeType
@@ -127,6 +212,7 @@ mutation VerifyDirectUpload($mediaId: String!) {
     timeStamp
     data {
       id
+      mediaId
       fileName
       status
     }
@@ -152,10 +238,74 @@ mutation AbortMultipartUpload($input: AbortMultipartUploadInput!) {
 
 ---
 
+#### `deleteMedia`
+Deletes a media item and removes the underlying object from storage.
+
+```graphql
+mutation DeleteMedia($mediaId: String!) {
+  deleteMedia(mediaId: $mediaId) {
+    success
+    statusCode
+    message
+    timeStamp
+  }
+}
+```
+
+---
+
 ### 1.2 Queries
 
+#### `uploadStatus`
+Checks the progress and missing chunk numbers of an active upload session for resuming interrupted uploads.
+
+```graphql
+query UploadStatus($uploadId: String!) {
+  uploadStatus(uploadId: $uploadId) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      uploadId
+      status
+      totalParts
+      completedParts
+      missingParts
+      expiresAt
+    }
+  }
+}
+```
+
+---
+
+#### `downloadUrl`
+Generates a time-limited download URL with optional version renditions (original, thumbnail, optimized) and custom expiry.
+
+```graphql
+query DownloadUrl($mediaId: String!, $versionType: String, $expirySeconds: Int) {
+  downloadUrl(mediaId: $mediaId, versionType: $versionType, expirySeconds: $expirySeconds) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      mediaId
+      url
+      downloadUrl
+      expiresInSeconds
+      expiresAt
+      contentType
+    }
+  }
+}
+```
+
+---
+
 #### `getMediaDownloadUrl`
-Generates a time-limited presigned GET URL for downloading private or public media.
+Generates a time-limited presigned GET URL for downloading media.
 
 ```graphql
 query GetMediaDownloadUrl($mediaId: String!) {
@@ -167,7 +317,41 @@ query GetMediaDownloadUrl($mediaId: String!) {
     data {
       mediaId
       downloadUrl
+      url
       expiresInSeconds
+    }
+  }
+}
+```
+
+---
+
+#### `getMediaById`
+Fetches a single media record by ID.
+
+```graphql
+query GetMediaById($mediaId: String!) {
+  getMediaById(mediaId: $mediaId) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      id
+      mediaId
+      fileName
+      storageKey
+      mimeType
+      sizeBytes
+      status
+      isPublic
+      versions {
+        id
+        versionType
+        storageKey
+        mimeType
+        sizeBytes
+      }
     }
   }
 }
@@ -192,6 +376,7 @@ query GetMyMedia($page: Int, $limit: Int) {
       totalPages
       items {
         id
+        mediaId
         fileName
         storageKey
         mimeType
@@ -208,19 +393,47 @@ query GetMyMedia($page: Int, $limit: Int) {
 
 ---
 
+#### `getMyQuota`
+Retrieves user storage quota and concurrent upload metrics.
+
+```graphql
+query GetMyQuota {
+  getMyQuota {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      userId
+      usedBytes
+      quotaBytes
+      activeUploads
+      maxConcurrent
+    }
+  }
+}
+```
+
+---
+
 ## 2. Server-Sent Events (SSE) Progress & Status Stream
 
-Instead of WebSockets, clients can listen to real-time verification and upload progress over HTTP Server-Sent Events:
+Real-time upload and processing updates streamed directly via HTTP Server-Sent Events (SSE):
 
-### Endpoint:
+### Endpoints:
+1. **Specific Media Lifecycle:**
 ```http
 GET /media/events/:mediaId
+```
+
+2. **Global Stream (All uploads & processing events):**
+```http
+GET /media/events
 ```
 
 ### Event Format:
 ```text
 event: media_update
 id: 01JBP8R3C8G2V...-1730379500000
-data: {"mediaId":"01JBP8R3C8G2V...","status":"READY","progressPercent":100,"message":"Upload completed and verified successfully","timestamp":"2026-10-31T12:58:20.000Z"}
+data: {"mediaId":"01JBP8R3C8G2V...","status":"READY","progressPercent":100,"message":"Upload completed and verified successfully","timestamp":"2026-11-02T12:58:20.000Z"}
 ```
-

@@ -2,8 +2,11 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RedisService } from '@bts-soft/cache';
-import { Media } from '../entity/media.entity.js';
-import { UploadSession, UploadSessionStatus } from '../entity/upload-session.entity.js';
+import { Media } from '../entities/media.entity.js';
+import {
+  UploadSession,
+  UploadSessionStatus,
+} from '../entities/upload-session.entity.js';
 import { MEDIA_CONSTANTS, MediaStatus } from '../constants/media.constants.js';
 import type { IQuotaUsage } from '../interfaces/IMediaMetadata.interface.js';
 

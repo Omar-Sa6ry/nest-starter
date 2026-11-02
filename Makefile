@@ -82,7 +82,7 @@ test-e2e:
 		npm run test:e2e
 
 docker-dev-up:
-		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml up -d --build
+	docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml up -d --build
 
 docker-dev-down:
 		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml down

@@ -4,12 +4,15 @@ import { S3StorageService } from './s3-storage.service.js';
 import { MediaSseService } from './media-sse.service.js';
 import { MediaQuotaService } from './media-quota.service.js';
 import { MediaValidationService } from './media-validation.service.js';
-import { MediaStatus, MediaTypeCategory } from '../constants/media.constants.js';
+import {
+  MediaStatus,
+  MediaTypeCategory,
+} from '../constants/media.constants.js';
 import type { Repository } from 'typeorm';
 import type { ConfigService } from '@nestjs/config';
-import type { Media } from '../entity/media.entity.js';
-import type { MediaVersion } from '../entity/media-version.entity.js';
-import type { UploadSession } from '../entity/upload-session.entity.js';
+import type { Media } from '../entities/media.entity.js';
+import type { MediaVersion } from '../entities/media-version.entity.js';
+import type { UploadSession } from '../entities/upload-session.entity.js';
 
 describe('MediaService (Enterprise Starter)', () => {
   let service: MediaService;
@@ -24,8 +27,14 @@ describe('MediaService (Enterprise Starter)', () => {
 
   beforeEach(() => {
     mockMediaRepo = {
-      create: vi.fn().mockImplementation((dto) => ({ id: 'media-snowflake-1', ...dto })),
-      save: vi.fn().mockImplementation((entity) => Promise.resolve({ id: 'media-snowflake-1', ...entity })),
+      create: vi
+        .fn()
+        .mockImplementation((dto) => ({ id: 'media-snowflake-1', ...dto })),
+      save: vi
+        .fn()
+        .mockImplementation((entity) =>
+          Promise.resolve({ id: 'media-snowflake-1', ...entity }),
+        ),
       findOne: vi.fn(),
       findAndCount: vi.fn(),
       softDelete: vi.fn().mockResolvedValue({ affected: 1 } as never),
@@ -44,13 +53,31 @@ describe('MediaService (Enterprise Starter)', () => {
 
     mockStorage = {
       getDefaultBucket: vi.fn().mockReturnValue('test-media-bucket'),
-      getPresignedPutUrl: vi.fn().mockResolvedValue('https://s3.amazonaws.com/test-media-bucket/presigned-put'),
-      getPresignedGetUrl: vi.fn().mockResolvedValue('https://s3.amazonaws.com/test-media-bucket/presigned-get'),
+      getPresignedPutUrl: vi
+        .fn()
+        .mockResolvedValue(
+          'https://s3.amazonaws.com/test-media-bucket/presigned-put',
+        ),
+      getPresignedGetUrl: vi
+        .fn()
+        .mockResolvedValue(
+          'https://s3.amazonaws.com/test-media-bucket/presigned-get',
+        ),
       createMultipartUpload: vi.fn().mockResolvedValue('upload-id-123'),
-      getPresignedUploadPartUrl: vi.fn().mockResolvedValue('https://s3.amazonaws.com/test-media-bucket/part-1'),
-      completeMultipartUpload: vi.fn().mockResolvedValue({ location: 's3://bucket/key', eTag: 'etag-123' }),
+      getPresignedUploadPartUrl: vi
+        .fn()
+        .mockResolvedValue('https://s3.amazonaws.com/test-media-bucket/part-1'),
+      completeMultipartUpload: vi
+        .fn()
+        .mockResolvedValue({ location: 's3://bucket/key', eTag: 'etag-123' }),
       abortMultipartUpload: vi.fn().mockResolvedValue(undefined),
-      headObject: vi.fn().mockResolvedValue({ contentLength: 1024, contentType: 'image/png', eTag: 'etag-123' }),
+      headObject: vi
+        .fn()
+        .mockResolvedValue({
+          contentLength: 1024,
+          contentType: 'image/png',
+          eTag: 'etag-123',
+        }),
       deleteObject: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -103,7 +130,10 @@ describe('MediaService (Enterprise Starter)', () => {
     expect(res.isMultipart).toBe(false);
     expect(res.uploadUrl).toContain('presigned-put');
     expect(mockStorage.getPresignedPutUrl).toHaveBeenCalledTimes(1);
-    expect(mockQuota.checkCanUpload).toHaveBeenCalledWith('user-1', 1024 * 1024);
+    expect(mockQuota.checkCanUpload).toHaveBeenCalledWith(
+      'user-1',
+      1024 * 1024,
+    );
   });
 
   it('should initiate multipart upload session for large files (>50MB)', async () => {

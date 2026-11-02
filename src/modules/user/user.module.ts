@@ -4,9 +4,13 @@ import { DbUserService } from './db-user.service.js';
 import { UserResolver } from './user.resolver.js';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entity/user.entity.js';
+import { MediaModule } from '../media/media.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    MediaModule,
+  ],
   providers: [
     DbUserService,
     UserService,
