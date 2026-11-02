@@ -64,7 +64,7 @@ describe('Payment (e2e)', { timeout: 60_000 }, () => {
           amountPaid: 150.0,
           currency: 'USD',
         }),
-        refundPayment: async (params: any) => ({
+        refundPayment: async (_params: any) => ({
           refundId: `re_e2e_${Date.now()}`,
           status: PaymentStatus.REFUNDED,
         }),

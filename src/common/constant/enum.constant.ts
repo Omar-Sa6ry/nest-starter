@@ -25,6 +25,11 @@ export enum Permission {
   PAYMENT_INITIATE = 'PAYMENT_INITIATE',
   PAYMENT_VIEW = 'PAYMENT_VIEW',
   PAYMENT_MANAGE = 'PAYMENT_MANAGE',
+
+  // Media
+  MEDIA_UPLOAD = 'MEDIA_UPLOAD',
+  MEDIA_VIEW = 'MEDIA_VIEW',
+  MEDIA_DELETE = 'MEDIA_DELETE',
 }
 
 registerEnumType(Permission, {

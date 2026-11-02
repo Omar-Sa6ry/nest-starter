@@ -1,0 +1,226 @@
+# Media API Documentation (GraphQL & SSE)
+
+Production-grade media management for direct S3-compatible cloud storage (AWS S3, MinIO) with support for huge files (up to 100 GB) via Presigned Single and Multipart Upload URLs, and real-time lifecycle tracking using Server-Sent Events (SSE).
+
+---
+
+## 1. GraphQL Schema
+
+### 1.1 Mutations
+
+#### `requestUploadUrl`
+Generates a direct presigned PUT URL for files smaller than 50 MB, or automatically triggers multipart upload for files larger than 50 MB (up to 100 GB).
+
+```graphql
+mutation RequestUploadUrl($input: RequestUploadInput!) {
+  requestUploadUrl(input: $input) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      mediaId
+      uploadUrl
+      uploadId
+      storageKey
+      isMultipart
+      expiresInSeconds
+      parts {
+        partNumber
+        uploadUrl
+      }
+    }
+  }
+}
+```
+
+*Variables:*
+```json
+{
+  "input": {
+    "fileName": "sample_video.mp4",
+    "mimeType": "video/mp4",
+    "sizeBytes": 10485760,
+    "isPublic": false
+  }
+}
+```
+
+---
+
+#### `initiateMultipartUpload`
+Explicitly initiates a multipart upload for massive files (up to 100 GB), returning presigned URLs for each chunk (default 10 MB per part).
+
+```graphql
+mutation InitiateMultipartUpload($input: InitiateMultipartUploadInput!) {
+  initiateMultipartUpload(input: $input) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      mediaId
+      uploadId
+      storageKey
+      isMultipart
+      expiresInSeconds
+      parts {
+        partNumber
+        uploadUrl
+      }
+    }
+  }
+}
+```
+
+---
+
+#### `completeMultipartUpload`
+Finalizes the multipart upload after the client has uploaded all parts to S3/MinIO. Verifies object presence and content length using S3 `HeadObject`.
+
+```graphql
+mutation CompleteMultipartUpload($input: CompleteMultipartUploadInput!) {
+  completeMultipartUpload(input: $input) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      id
+      fileName
+      storageKey
+      mimeType
+      sizeBytes
+      status
+      isPublic
+      createdAt
+      updatedAt
+    }
+  }
+}
+```
+
+*Variables:*
+```json
+{
+  "input": {
+    "mediaId": "01JBP8R3C8G2V...",
+    "parts": [
+      { "partNumber": 1, "eTag": "\"d41d8cd98f00b204e9800998ecf8427e\"" },
+      { "partNumber": 2, "eTag": "\"098f6bcd4621d373cade4e832627b4f6\"" }
+    ]
+  }
+}
+```
+
+---
+
+#### `verifyDirectUpload`
+Verifies that a direct single-part upload (< 50MB) was successfully received by S3/MinIO and marks the status as `READY`.
+
+```graphql
+mutation VerifyDirectUpload($mediaId: String!) {
+  verifyDirectUpload(mediaId: $mediaId) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      id
+      fileName
+      status
+    }
+  }
+}
+```
+
+---
+
+#### `abortMultipartUpload`
+Aborts an incomplete multipart upload and clears staged parts on S3.
+
+```graphql
+mutation AbortMultipartUpload($input: AbortMultipartUploadInput!) {
+  abortMultipartUpload(input: $input) {
+    success
+    statusCode
+    message
+    timeStamp
+  }
+}
+```
+
+---
+
+### 1.2 Queries
+
+#### `getMediaDownloadUrl`
+Generates a time-limited presigned GET URL for downloading private or public media.
+
+```graphql
+query GetMediaDownloadUrl($mediaId: String!) {
+  getMediaDownloadUrl(mediaId: $mediaId) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      mediaId
+      downloadUrl
+      expiresInSeconds
+    }
+  }
+}
+```
+
+---
+
+#### `getMyMedia`
+Retrieves a paginated list of media files uploaded by the current authenticated user.
+
+```graphql
+query GetMyMedia($page: Int, $limit: Int) {
+  getMyMedia(page: $page, limit: $limit) {
+    success
+    statusCode
+    message
+    timeStamp
+    data {
+      total
+      page
+      limit
+      totalPages
+      items {
+        id
+        fileName
+        storageKey
+        mimeType
+        sizeBytes
+        status
+        isPublic
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+```
+
+---
+
+## 2. Server-Sent Events (SSE) Progress & Status Stream
+
+Instead of WebSockets, clients can listen to real-time verification and upload progress over HTTP Server-Sent Events:
+
+### Endpoint:
+```http
+GET /media/events/:mediaId
+```
+
+### Event Format:
+```text
+event: media_update
+id: 01JBP8R3C8G2V...-1730379500000
+data: {"mediaId":"01JBP8R3C8G2V...","status":"READY","progressPercent":100,"message":"Upload completed and verified successfully","timestamp":"2026-10-31T12:58:20.000Z"}
+```
+

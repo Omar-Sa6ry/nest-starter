@@ -69,3 +69,4 @@ export class PaymentTransactionResponse extends GeneralResponse(PaymentTransacti
 
 @ObjectType()
 export class PaginatedPaymentTransactionsResponse extends PaginatedResponse(PaymentTransactionType) {}
+
