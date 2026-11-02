@@ -12,6 +12,7 @@ export class MediaValidationService {
   private readonly logger = new Logger(MediaValidationService.name);
 
   validateDeclaredType(fileName: string, mimeType: string): boolean {
+    if (!fileName.includes('.')) return false;
     const ext = fileName.split('.').pop()?.toLowerCase();
     if (!ext) return false;
 

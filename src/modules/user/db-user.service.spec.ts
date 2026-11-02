@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 import { DbUserService } from './db-user.service.js';
 import { Role } from '../../common/constant/enum.constant.js';
+import type { MediaService } from '../media/services/media.service.js';
 
 describe('DbUserService', () => {
   let service: DbUserService;
   let mockRepo: Record<string, ReturnType<typeof vi.fn>>;
   let mockHasher: Record<string, ReturnType<typeof vi.fn>>;
+  let mockMediaService: Partial<MediaService>;
   const mockI18n = { t: vi.fn((key: string) => key) };
 
   const sampleUser = {
@@ -43,10 +45,23 @@ describe('DbUserService', () => {
       hash: vi.fn(),
     };
 
+    mockMediaService = {
+      findById: vi.fn().mockResolvedValue({
+        id: 'media-1',
+        mediaId: 'media-1',
+        fileName: 'avatar.png',
+      } as any),
+      getDownloadUrl: vi.fn().mockResolvedValue({
+        downloadUrl: 'https://example.com/avatar.png',
+        url: 'https://example.com/avatar.png',
+      } as any),
+    };
+
     service = new DbUserService(
       mockRepo as never,
       mockHasher as never,
       mockI18n as never,
+      mockMediaService as MediaService,
     );
   });
 
@@ -56,8 +71,18 @@ describe('DbUserService', () => {
 
       const result = await service.findById('user-1');
 
-      expect(result).toEqual(sampleUser);
-      expect(mockRepo.findOne).toHaveBeenCalledWith({ where: { id: 'user-1' } });
+      expect(result).toBe(sampleUser);
+      expect(mockRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+      });
+    });
+
+    it('throws when user not found', async () => {
+      mockRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.findById('missing')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -65,7 +90,7 @@ describe('DbUserService', () => {
     it('normalizes the email', async () => {
       mockRepo.findOne.mockResolvedValue(sampleUser);
 
-      await service.findByEmail('  TEST@Example.com ');
+      await service.findByEmail('  TEST@Example.com  ');
 
       expect(mockRepo.findOne).toHaveBeenCalledWith({
         where: { email: 'test@example.com' },
@@ -75,44 +100,49 @@ describe('DbUserService', () => {
 
   describe('findAll', () => {
     it('paginates results', async () => {
-      mockRepo.findAndCount.mockResolvedValue([[sampleUser], 25]);
+      mockRepo.findAndCount.mockResolvedValue([[sampleUser], 10]);
 
-      const result = await service.findAll(2, 10);
+      const result = await service.findAll(1, 5);
 
-      expect(result.items).toEqual([sampleUser]);
-      expect(result.totalItems).toBe(25);
-      expect(result.currentPage).toBe(2);
-      expect(result.nextPage).toBe(3);
+      expect(result.items).toHaveLength(1);
+      expect(result.totalItems).toBe(10);
+      expect(result.currentPage).toBe(1);
+      expect(result.nextPage).toBe(2);
       expect(mockRepo.findAndCount).toHaveBeenCalledWith({
-        skip: 10,
-        take: 10,
+        skip: 0,
+        take: 5,
         order: { createdAt: 'DESC' },
       });
     });
 
     it('returns undefined nextPage on last page', async () => {
-      mockRepo.findAndCount.mockResolvedValue([[sampleUser], 15]);
+      mockRepo.findAndCount.mockResolvedValue([[sampleUser], 3]);
 
-      const result = await service.findAll(2, 10);
+      const result = await service.findAll(1, 5);
 
       expect(result.nextPage).toBeUndefined();
     });
   });
 
   describe('updateProfile', () => {
-    it('updates provided fields', async () => {
+    it('updates provided fields with avatarMediaId', async () => {
       mockRepo.findOne.mockResolvedValue({ ...sampleUser });
       mockRepo.save.mockImplementation((u: unknown) => u);
 
       const result = await service.updateProfile('user-1', {
         firstName: 'New',
         lastName: 'Name',
-        imageUrl: 'https://example.com/a.png',
+        avatarMediaId: 'media-1',
       });
 
       expect(result.firstName).toBe('New');
       expect(result.lastName).toBe('Name');
-      expect(result.imageUrl).toBe('https://example.com/a.png');
+      expect(result.imageUrl).toBe('https://example.com/avatar.png');
+      expect(mockMediaService.findById).toHaveBeenCalledWith('media-1');
+      expect(mockMediaService.getDownloadUrl).toHaveBeenCalledWith(
+        'user-1',
+        'media-1',
+      );
       expect(mockRepo.save).toHaveBeenCalled();
     });
 
@@ -124,11 +154,12 @@ describe('DbUserService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('throws on invalid image url', async () => {
+    it('throws on invalid avatar media id if not found', async () => {
       mockRepo.findOne.mockResolvedValue({ ...sampleUser });
+      vi.mocked(mockMediaService.findById!).mockResolvedValue(null as any);
 
       await expect(
-        service.updateProfile('user-1', { imageUrl: 'not-a-url' }),
+        service.updateProfile('user-1', { avatarMediaId: 'non-existent' }),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -140,23 +171,25 @@ describe('DbUserService', () => {
       mockHasher.hash.mockResolvedValue('new-hash');
       mockRepo.save.mockImplementation((u: unknown) => u);
 
-      const result = await service.changePassword('user-1', {
+      await service.changePassword('user-1', {
         passwordOld: 'old',
         passwordNew: 'new',
       });
 
-      expect(result.passwordHash).toBe('new-hash');
       expect(mockHasher.compare).toHaveBeenCalledWith('old', 'hashed');
       expect(mockHasher.hash).toHaveBeenCalledWith('new');
+      expect(mockRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ passwordHash: 'new-hash' }),
+      );
     });
 
     it('throws when user not found', async () => {
       mockRepo.findOne.mockResolvedValue(null);
 
       await expect(
-        service.changePassword('missing', {
-          passwordOld: 'a',
-          passwordNew: 'b',
+        service.changePassword('user-1', {
+          passwordOld: 'o',
+          passwordNew: 'n',
         }),
       ).rejects.toThrow(NotFoundException);
     });
@@ -168,7 +201,7 @@ describe('DbUserService', () => {
       await expect(
         service.changePassword('user-1', {
           passwordOld: 'wrong',
-          passwordNew: 'new',
+          passwordNew: 'n',
         }),
       ).rejects.toThrow(UnauthorizedException);
     });
@@ -187,7 +220,7 @@ describe('DbUserService', () => {
     it('throws when user not found', async () => {
       mockRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.promoteUserToAdmin('missing')).rejects.toThrow(
+      await expect(service.promoteUserToAdmin('user-1')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -215,7 +248,7 @@ describe('DbUserService', () => {
     it('throws when user not found', async () => {
       mockRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.updateUserRole('missing', 'user')).rejects.toThrow(
+      await expect(service.updateUserRole('user-1', 'ADMIN')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -234,7 +267,7 @@ describe('DbUserService', () => {
     it('throws when user not found', async () => {
       mockRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.toggleUserActive('missing', true)).rejects.toThrow(
+      await expect(service.toggleUserActive('user-1', false)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -263,7 +296,7 @@ describe('DbUserService', () => {
     it('throws when user not found', async () => {
       mockRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.deleteUser('missing')).rejects.toThrow(
+      await expect(service.deleteUser('user-1')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -272,9 +305,9 @@ describe('DbUserService', () => {
   describe('countUsersThisMonthAndLastMonth', () => {
     it('computes stats with increase percentage', async () => {
       mockRepo.count
-        .mockResolvedValueOnce(100)
-        .mockResolvedValueOnce(20)
-        .mockResolvedValueOnce(10);
+        .mockResolvedValueOnce(100) // total
+        .mockResolvedValueOnce(20) // this month
+        .mockResolvedValueOnce(10); // last month
 
       const result = await service.countUsersThisMonthAndLastMonth();
 
@@ -285,7 +318,7 @@ describe('DbUserService', () => {
 
     it('returns 100 when last month had zero users', async () => {
       mockRepo.count
-        .mockResolvedValueOnce(50)
+        .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(0);
 

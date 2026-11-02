@@ -19,7 +19,7 @@ import {
   AbortMultipartUploadInput,
   CreateUploadSessionInput,
   CompleteUploadInput,
-} from './inputs/media.inputs.js';
+} from './input/media.inputs.js';
 import { Auth } from '../../common/decorator/auth.decorator.js';
 import { Permission } from '../../common/constant/enum.constant.js';
 import { MEDIA_I18N } from './constants/media-i18n.constants.js';
