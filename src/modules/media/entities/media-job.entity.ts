@@ -5,8 +5,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { IdGenerator } from '@bts-soft/core';
+import { Media } from './media.entity.js';
 
 export enum MediaJobType {
   SCAN = 'SCAN',
@@ -34,6 +37,12 @@ export class MediaJob {
   @Index()
   @Column({ name: 'media_id', type: 'varchar', length: 36 })
   mediaId!: string;
+
+  @ManyToOne(() => Media, (media) => media.jobs, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'media_id' })
+  media?: Media;
 
   @Column({
     name: 'job_type',

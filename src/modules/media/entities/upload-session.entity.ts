@@ -5,9 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { IdGenerator } from '@bts-soft/core';
 import type { IUploadPartItem } from '../interfaces/IMediaMetadata.interface.js';
+import { Media } from './media.entity.js';
 
 export enum UploadSessionStatus {
   PENDING = 'PENDING',
@@ -25,6 +28,12 @@ export class UploadSession {
   @Index()
   @Column({ name: 'media_id', type: 'varchar', length: 36 })
   mediaId!: string;
+
+  @ManyToOne(() => Media, (media) => media.uploadSessions, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'media_id' })
+  media?: Media;
 
   @Index()
   @Column({ name: 'user_id', type: 'varchar', length: 64 })

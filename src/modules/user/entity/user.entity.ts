@@ -7,8 +7,11 @@ import {
   Unique,
   Index,
   Check,
+  OneToMany,
 } from 'typeorm';
 import { Role } from '../../../common/constant/enum.constant.js';
+import { Media } from '../../media/entities/media.entity.js';
+import { PaymentTransaction } from '../../payment/entity/payment-transaction.entity.js';
 
 @Entity('users')
 @Unique(['email', 'phoneNumber'])
@@ -56,6 +59,12 @@ export class User {
     default: null,
   })
   imageUrl?: string;
+
+  @OneToMany(() => Media, (media) => media.uploadedBy)
+  media?: Media[];
+
+  @OneToMany(() => PaymentTransaction, (tx) => tx.user)
+  paymentTransactions?: PaymentTransaction[];
 
   @CreateDateColumn({ name: 'created_at' })
   @Index()

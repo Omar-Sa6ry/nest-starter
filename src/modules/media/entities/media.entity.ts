@@ -6,10 +6,17 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { IdGenerator } from '@bts-soft/core';
 import { MediaStatus, MediaTypeCategory } from '../constants/media.constants.js';
 import type { IMediaMetadata } from '../interfaces/IMediaMetadata.interface.js';
+import { User } from '../../user/entity/user.entity.js';
+import { MediaVersion } from './media-version.entity.js';
+import { UploadSession } from './upload-session.entity.js';
+import { MediaJob } from './media-job.entity.js';
 
 @Entity('media')
 export class Media {
@@ -52,8 +59,24 @@ export class Media {
   uploadId?: string | null;
 
   @Index()
-  @Column({ name: 'uploaded_by_id', type: 'varchar', length: 64 })
+  @Column({ name: 'uploaded_by_id', type: 'varchar', length: 36 })
   uploadedById!: string;
+
+  @ManyToOne(() => User, (user) => user.media, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'uploaded_by_id' })
+  uploadedBy?: User;
+
+  @OneToMany(() => MediaVersion, (version) => version.media)
+  versions?: MediaVersion[];
+
+  @OneToMany(() => UploadSession, (session) => session.media)
+  uploadSessions?: UploadSession[];
+
+  @OneToMany(() => MediaJob, (job) => job.media)
+  jobs?: MediaJob[];
 
   @Column({ name: 'checksum', type: 'varchar', length: 128, nullable: true })
   checksum?: string | null;

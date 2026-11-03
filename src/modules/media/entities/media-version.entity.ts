@@ -4,9 +4,12 @@ import {
   Column,
   CreateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { IdGenerator } from '@bts-soft/core';
 import { VersionType } from '../constants/media.constants.js';
+import { Media } from './media.entity.js';
 
 @Entity('media_versions')
 export class MediaVersion {
@@ -16,6 +19,12 @@ export class MediaVersion {
   @Index()
   @Column({ name: 'media_id', type: 'varchar', length: 36 })
   mediaId!: string;
+
+  @ManyToOne(() => Media, (media) => media.versions, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'media_id' })
+  media?: Media;
 
   @Column({
     name: 'version_type',

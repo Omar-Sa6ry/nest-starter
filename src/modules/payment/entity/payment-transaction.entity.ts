@@ -5,10 +5,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { PaymentProvider } from '../enums/payment-provider.enum.js';
 import { PaymentStatus } from '../enums/payment-status.enum.js';
 import { PaymentCurrency } from '../enums/payment-currency.enum.js';
+import { User } from '../../user/entity/user.entity.js';
 
 @Entity('payment_transactions')
 export class PaymentTransaction {
@@ -18,6 +21,13 @@ export class PaymentTransaction {
   @Index()
   @Column({ name: 'user_id', type: 'varchar', length: 36 })
   userId: string;
+
+  @ManyToOne(() => User, (user) => user.paymentTransactions, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'user_id' })
+  user?: User;
 
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;
