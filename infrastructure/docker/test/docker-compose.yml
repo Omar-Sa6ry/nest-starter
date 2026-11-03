@@ -49,7 +49,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-nest_starter_test_db}
     ports:
-      - "127.0.0.1:${DB_PORT:-5434}:5432"
+      - "127.0.0.1:${DB_PORT:-15432}:5432"
     volumes:
       - test_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -64,7 +64,7 @@ services:
     restart: unless-stopped
     command: redis-server --maxmemory 256mb --maxmemory-policy noeviction
     ports:
-      - "127.0.0.1:${REDIS_PORT:-6581}:6379"
+      - "127.0.0.1:${REDIS_PORT:-16379}:6379"
     volumes:
       - test_redis_data:/data
     healthcheck:

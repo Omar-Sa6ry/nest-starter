@@ -196,7 +196,7 @@ tasks:
   docker:test:up:
     desc: Spin up isolated test stack (postgres and redis)
     cmds:
-      - docker compose --env-file {{.ENV_TEST}} {{.COMPOSE_TEST}} up -d postgres redis
+      - docker compose --env-file {{.ENV_TEST}} {{.COMPOSE_TEST}} up -d --remove-orphans postgres redis
 
   docker:test:down:
     desc: Tear down test stack and ephemeral volumes

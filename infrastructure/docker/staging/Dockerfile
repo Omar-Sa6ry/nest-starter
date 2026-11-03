@@ -22,7 +22,7 @@ COPY package*.json ./
 RUN npm ci --legacy-peer-deps --omit=dev && npm cache clean --force
 
 COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/src/common/translation/locales ./src/common/translation/locales
+COPY --from=builder /usr/src/app/src/modules ./src/modules
 
 USER appuser
 

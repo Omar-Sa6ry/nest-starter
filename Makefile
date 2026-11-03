@@ -4,141 +4,180 @@
 .DEFAULT_GOAL := help
 
 .PHONY: help install ncu update dev build deploy clean start start-dev start-debug start-prod \
-        lint format test test-watch test-cov test-debug test-e2e \
+        lint format typecheck test test-watch test-cov test-debug test-e2e \
         health health-ready metrics \
         docker-dev-up docker-dev-down docker-dev-logs docker-dev-rebuild \
         docker-test-up docker-test-down docker-test-logs \
         docker-staging-up docker-staging-down docker-staging-logs \
         docker-prod-up docker-prod-down docker-prod-logs \
-        db-up db-down redis-up redis-down down
+        db-up db-down redis-up redis-down redis-cli s3-up s3-down logs-app logs-db logs-redis \
+        shell-app shell-db shell-redis down prune
 
 # Base URL used by the health / metrics targets.
 # Override per call: `make health APP_URL=http://localhost:8080`
 APP_URL ?= http://localhost:3000
+COMPOSE_DEV  := docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml
+COMPOSE_TEST := docker compose --env-file environments/.env.test -f infrastructure/docker/test/docker-compose.yml
+COMPOSE_STAGING := docker compose --env-file environments/.env.staging -f infrastructure/docker/staging/docker-compose.yml
+COMPOSE_PROD := docker compose --env-file environments/.env.production -f infrastructure/docker/production/docker-compose.yml
 
 install:
-		npm install
+	npm install --legacy-peer-deps
 
 ncu:
-		npx npm-check-updates
+	npx npm-check-updates
 
 update:
-		npx npm-check-updates -u
-		npm install --legacy-peer-deps
+	npx npm-check-updates -u
+	npm install --legacy-peer-deps
+
+typecheck:
+	npm run typecheck
 
 dev:
-		npm run start:dev
+	npm run start:dev
 
 build:
-		nest build
+	nest build
 
 deploy:
-		nest deploy
+	nest deploy
 
 clean:
-		npm run clean
+	npm run clean
 
 start:
-		nest start
+	nest start
 
 start-dev:
-		nest start --watch
+	nest start --watch
 
 start-debug:
-		nest start --debug --watch
+	nest start --debug --watch
 
 start-prod:
-		NODE_ENV=production node dist/main
+	NODE_ENV=production node dist/main
 
 # Health & observability endpoints (GET, no auth)
 health:
-		curl -sS $(APP_URL)/health
+	curl -sS $(APP_URL)/health
 
 health-ready:
-		curl -sS $(APP_URL)/health/ready
+	curl -sS $(APP_URL)/health/ready
 
 metrics:
-		curl -sS $(APP_URL)/metrics
+	curl -sS $(APP_URL)/metrics
 
 lint:
-		npm run lint
+	npm run lint
 
 format:
-		npm run format
+	npm run format
 
 test:
-		npm run test
+	npm run test
 
 test-watch:
-		npm run test:watch
+	npm run test:watch
 
 test-cov:
-		npm run test:cov
+	npm run test:cov
 
 test-debug:
-		npm run test:debug
+	npm run test:debug
 
 test-e2e:
-		npm run test:e2e
+	npm run test:e2e
 
 docker-dev-up:
-	docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml up -d --build
+	$(COMPOSE_DEV) up -d --build
 
 docker-dev-down:
-		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml down
+	$(COMPOSE_DEV) down
 
 docker-dev-logs:
-		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml logs -f app
+	$(COMPOSE_DEV) logs -f app
 
 docker-dev-rebuild:
-		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml down
-		docker volume rm nest-starter-dev_app_node_modules 2> /dev/null || true
-		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml up -d --build --force-recreate app
+	$(COMPOSE_DEV) down
+	docker volume rm nest-starter-dev_app_node_modules 2> /dev/null || true
+	$(COMPOSE_DEV) up -d --build --force-recreate app
 
 docker-test-up:
-		docker compose --env-file environments/.env.test -f infrastructure/docker/test/docker-compose.yml up -d postgres redis
+	$(COMPOSE_TEST) up -d --remove-orphans postgres redis
 
 docker-test-down:
-		docker compose --env-file environments/.env.test -f infrastructure/docker/test/docker-compose.yml down
+	$(COMPOSE_TEST) down
 
 docker-test-logs:
-		docker compose --env-file environments/.env.test -f infrastructure/docker/test/docker-compose.yml logs -f app
+	$(COMPOSE_TEST) logs -f app
 
 docker-staging-up:
-		docker compose --env-file environments/.env.staging -f infrastructure/docker/staging/docker-compose.yml up -d --build
+	$(COMPOSE_STAGING) up -d --build
 
 docker-staging-down:
-		docker compose --env-file environments/.env.staging -f infrastructure/docker/staging/docker-compose.yml down
+	$(COMPOSE_STAGING) down
 
 docker-staging-logs:
-		docker compose --env-file environments/.env.staging -f infrastructure/docker/staging/docker-compose.yml logs -f app
+	$(COMPOSE_STAGING) logs -f app
 
 docker-prod-up:
-		docker compose --env-file environments/.env.production -f infrastructure/docker/production/docker-compose.yml up -d --build
+	$(COMPOSE_PROD) up -d --build
 
 docker-prod-down:
-		docker compose --env-file environments/.env.production -f infrastructure/docker/production/docker-compose.yml down
+	$(COMPOSE_PROD) down
 
 docker-prod-logs:
-		docker compose --env-file environments/.env.production -f infrastructure/docker/production/docker-compose.yml logs -f app
+	$(COMPOSE_PROD) logs -f app
 
 db-up:
-		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml up -d postgres
+	$(COMPOSE_DEV) up -d postgres
 
 db-down:
-		docker compose -f infrastructure/docker/development/docker-compose.yml stop postgres
+	$(COMPOSE_DEV) stop postgres
 
 redis-up:
-		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml up -d redis
+	$(COMPOSE_DEV) up -d redis
 
 redis-down:
-		docker compose -f infrastructure/docker/development/docker-compose.yml stop redis
+	$(COMPOSE_DEV) stop redis
+
+redis-cli:
+	$(COMPOSE_DEV) exec redis redis-cli
+
+s3-up:
+	$(COMPOSE_DEV) up -d minio
+
+s3-down:
+	$(COMPOSE_DEV) stop minio
+
+logs-app:
+	$(COMPOSE_DEV) logs -f app
+
+logs-db:
+	$(COMPOSE_DEV) logs -f postgres
+
+logs-redis:
+	$(COMPOSE_DEV) logs -f redis
+
+shell-app:
+	$(COMPOSE_DEV) exec app sh
+
+shell-db:
+	$(COMPOSE_DEV) exec postgres psql -U postgres -d nestdb
+
+shell-redis:
+	$(COMPOSE_DEV) exec redis sh
 
 down:
-		docker compose --env-file environments/.env.development -f infrastructure/docker/development/docker-compose.yml down
-		docker compose --env-file environments/.env.test -f infrastructure/docker/test/docker-compose.yml down
-		docker compose --env-file environments/.env.staging -f infrastructure/docker/staging/docker-compose.yml down
-		docker compose --env-file environments/.env.production -f infrastructure/docker/production/docker-compose.yml down
+	$(COMPOSE_DEV) down
+	$(COMPOSE_TEST) down
+	$(COMPOSE_STAGING) down
+	$(COMPOSE_PROD) down
+
+prune:
+	docker system prune -f
+	docker volume prune -f
 
 help:
 	@echo "Available targets:"
@@ -147,6 +186,7 @@ help:
 	@echo "  make install       - npm install"
 	@echo "  make ncu           - Check for outdated packages"
 	@echo "  make update        - Update package.json to latest & install"
+	@echo "  make typecheck     - Run TypeScript type checks"
 	@echo "  make dev           - Start app in watch mode (environments/.env.development)"
 	@echo ""
 	@echo "  # Build & Run:"
@@ -200,5 +240,10 @@ help:
 	@echo "  make db-down       - Stop postgres (dev)"
 	@echo "  make redis-up      - Start only redis (dev)"
 	@echo "  make redis-down    - Stop redis (dev)"
+	@echo "  make redis-cli     - Connect to redis-cli in container"
+	@echo "  make s3-up         - Start MinIO object storage (dev)"
+	@echo "  make s3-down       - Stop MinIO"
 	@echo ""
+	@echo "  # Teardown & Maintenance:"
 	@echo "  make down          - Stop ALL nest-starter docker resources"
+	@echo "  make prune         - Prune dangling docker resources"
