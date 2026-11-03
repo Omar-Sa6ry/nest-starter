@@ -4,6 +4,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { access, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 
 const TEMPLATE = 'Omar-Sa6ry/nest-starter';
 const validName = (name) => /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name) && name !== '.' && name !== '..';
@@ -50,12 +51,32 @@ async function processDirectory(dirPath, replacements) {
   }
 }
 
+function runCommand(command, args, cwd) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      stdio: 'inherit',
+      shell: true,
+    });
+
+    child.on('error', (err) => reject(err));
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Command "${command} ${args.join(' ')}" exited with code ${code}`));
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 async function customizeProject(target, projectName) {
   const cleanName = projectName.toLowerCase();
   const dbName = cleanName.replace(/[^a-zA-Z0-9_]/g, '_');
 
-  // 1. Remove create-starter directory from cloned project
+  // 1. Remove create-starter and media-frontend directories from cloned project
   await rm(path.join(target, 'create-starter'), { recursive: true, force: true });
+  await rm(path.join(target, 'media-frontend'), { recursive: true, force: true });
 
   // 2. Comprehensive replacements across all files
   const replacements = [
@@ -138,18 +159,20 @@ async function main() {
     if (downloadError) throw downloadError;
 
     await customizeProject(target, projectName);
+
+    console.log('\nInstalling dependencies (make install)...');
+    await runCommand('make', ['install'], target);
   } catch (error) {
     await rm(target, { recursive: true, force: true });
-    console.error(`Could not download the template: ${error.message}`);
-    console.error('Check that the GitHub repository is public and the repository name is correct.');
+    console.error(`Could not complete project setup: ${error.message}`);
     process.exitCode = 1;
     return;
   }
 
-  console.log('\nProject created successfully! Next steps:');
+  console.log('\nProject created and initialized successfully! Next steps:');
   console.log(`  cd ${projectName}`);
-  console.log('  npm install');
-  console.log('  npm run start:dev');
+  console.log('  make docker-dev-up    # Recommended first step to start Docker containers');
+  console.log('  make dev              # Run application in development mode');
 }
 
 main().catch((error) => {

@@ -1,14 +1,27 @@
 {
   "name": "@bts-soft/create-starter",
-  "version": "1.5.0",
+  "version": "1.5.1",
+  "description": "Production-ready NestJS 12 starter CLI template generator: provisions GraphQL (Apollo code-first), TypeORM + PostgreSQL, Redis, JWT auth with refresh rotation, RBAC, OAuth2, rate limiting, S3/MinIO media upload, BullMQ workers, WebSocket gateways, and multi-environment Docker stacks.",
   "author": "Omar Ahmed Sabry",
-  "description": "Production-ready NestJS 12 starter template: GraphQL (Apollo, code-first), TypeORM + PostgreSQL, Redis cache and sessions, JWT auth with refresh-token rotation and blacklisting, RBAC, Google OAuth 2.0, sliding-window rate limiting, i18n (en/ar), structured logging with trace IDs, Prometheus metrics, health probes, and isolated Docker Compose stacks for development, test, staging and production.",
   "license": "Apache-2.0",
+  "homepage": "https://github.com/Omar-Sa6ry/nest-starter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Omar-Sa6ry/nest-starter.git",
+    "directory": "create-starter"
+  },
+  "bugs": {
+    "url": "https://github.com/Omar-Sa6ry/nest-starter/issues"
+  },
   "keywords": [
-    "nestjs",
-    "starter",
+    "create-starter",
+    "cli",
+    "generator",
     "template",
+    "starter",
     "boilerplate",
+    "nestjs",
+    "nestjs12",
     "graphql",
     "apollo",
     "typeorm",
@@ -24,7 +37,12 @@
     "docker",
     "vitest",
     "typescript",
-    "esm"
+    "esm",
+    "s3",
+    "minio",
+    "media",
+    "bullmq",
+    "socket-io"
   ],
   "type": "module",
   "bin": {
@@ -45,3 +63,4 @@
     "access": "public"
   }
 }
+

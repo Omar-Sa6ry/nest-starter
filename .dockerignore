@@ -2,63 +2,70 @@
 node_modules
 .npm
 .yarn
+.pnpm-store
 
-# Build Output
+# Build & Runtime Output
 dist
 build
 coverage
 .nyc_output
 *.tsbuildinfo
+*.log
 
-# Environment Variables
+# Environment Variables & Secrets
 .env
 .env.*
 !.env.example
 environments/
 
-# Version Control / CI
+# Version Control & CI/CD
 .git
 .github
 .gitlab-ci.yml
 .dockerignore
 .gitignore
 
-# Tests
-test
+# Tests & Test Configuration
+test/
 **/*.spec.ts
 **/*.test.ts
 vitest.config*.ts
 
-# Documentation / scratch
+# Documentation & Development Notes
 README.md
-docs
-api docs
+docs/
+api docs/
 *.md
 notes.txt
+FULL_FLOW.md
+image.png
 
-# Docker / Infrastructure (available on the host, not needed inside the image)
-infrastructure
+# Docker, Compose & Infrastructure Definitions (Host orchestration only)
+infrastructure/
 docker-compose*.yml
 Dockerfile*
 
-# IDE / Editor / OS
-.idea
-.vscode
+# IDE, Editor & OS Artifacts
+.idea/
+.vscode/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
+desktop.ini
+.trunk/
+.sisyphus/
 
-# Temporary
-.temp
-.tmp
-*.log
+# Temporary Directories
+.temp/
+.tmp/
+tmp/
 
-# Prettier / lint config is not needed to build or run the image.
-# nest-cli.json IS needed (`nest build` / `nest start` run inside the image).
+# Linting & Formatting Configurations
 .prettierrc
 oxlint.json
-.sisyphus
 
-#ِ Add Create Starter
-create-starter
+# Template Generator Package & Frontend Sub-apps
+create-starter/
+media-frontend/
+
