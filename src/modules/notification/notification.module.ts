@@ -22,6 +22,8 @@ import { NotificationMessageFactory } from './factory/notification-message.facto
 import { NotificationService } from './notification.service.js';
 import { NotificationResolver } from './notification.resolver.js';
 import { NotificationDomainListener } from './events/listeners/notification-domain.listener.js';
+import { PaymentNotificationListener } from './events/listeners/payment-notification.listener.js';
+import { MediaNotificationListener } from './events/listeners/media-notification.listener.js';
 import { UserModule } from '../user/user.module.js';
 
 @Module({
@@ -65,6 +67,8 @@ import { UserModule } from '../user/user.module.js';
     NotificationService,
     NotificationResolver,
     NotificationDomainListener,
+    PaymentNotificationListener,
+    MediaNotificationListener,
   ],
   exports: [
     NotificationService,

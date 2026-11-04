@@ -2,22 +2,26 @@
 import degit from 'degit';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
-import { access, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 
 const TEMPLATE = 'Omar-Sa6ry/nest-starter';
-const validName = (name) => /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name) && name !== '.' && name !== '..';
 
 const TEXT_EXTENSIONS = new Set([
   '.ts', '.js', '.mjs', '.cjs', '.json', '.yml', '.yaml',
   '.md', '.env', '.development', '.test', '.staging', '.production',
-  '.example', '.conf', '.tmpl', '.sh', '.gql', '.graphql', ''
+  '.example', '.conf', '.tmpl', '.sh', '.gql', '.graphql', '',
 ]);
 
 const IGNORED_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'coverage'
+  'node_modules', '.git', 'dist', 'coverage',
 ]);
+
+function isValidName(name) {
+  return /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name) && name !== '.' && name !== '..';
+}
 
 async function processDirectory(dirPath, replacements) {
   const entries = await readdir(dirPath, { withFileTypes: true });
@@ -29,7 +33,6 @@ async function processDirectory(dirPath, replacements) {
       }
     } else if (entry.isFile()) {
       const ext = path.extname(entry.name).toLowerCase();
-      // Allow known text extensions or files without extension like Makefile
       if (TEXT_EXTENSIONS.has(ext) || entry.name === 'Makefile') {
         try {
           let content = await readFile(fullPath, 'utf8');
@@ -44,7 +47,7 @@ async function processDirectory(dirPath, replacements) {
             await writeFile(fullPath, content, 'utf8');
           }
         } catch {
-          // ignore unreadable/binary files
+          // skip unreadable or binary files
         }
       }
     }
@@ -58,7 +61,6 @@ function runCommand(command, args, cwd) {
       stdio: 'inherit',
       shell: true,
     });
-
     child.on('error', (err) => reject(err));
     child.on('close', (code) => {
       if (code !== 0) {
@@ -74,11 +76,11 @@ async function customizeProject(target, projectName) {
   const cleanName = projectName.toLowerCase();
   const dbName = cleanName.replace(/[^a-zA-Z0-9_]/g, '_');
 
-  // 1. Remove create-starter and media-frontend directories from cloned project
+  // Remove scaffolding directories that must not exist in the generated project
   await rm(path.join(target, 'create-starter'), { recursive: true, force: true });
   await rm(path.join(target, 'media-frontend'), { recursive: true, force: true });
 
-  // 2. Comprehensive replacements across all files
+  // Replacements applied recursively across all text files
   const replacements = [
     ['@bts-soft/nest-starter', cleanName],
     ['Nest Starter', projectName],
@@ -105,74 +107,90 @@ async function customizeProject(target, projectName) {
 
   await processDirectory(target, replacements);
 
-  // 3. Ensure package.json name is specifically cleanName
+  // Ensure package.json name field is set to the clean project name
   const packagePath = path.join(target, 'package.json');
   try {
-    const packageJson = JSON.parse(await readFile(packagePath, 'utf8'));
-    packageJson.name = cleanName;
-    await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
+    const raw = await readFile(packagePath, 'utf8');
+    const pkg = JSON.parse(raw);
+    pkg.name = cleanName;
+    await writeFile(packagePath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
   } catch {
-    // ignore
+    // ignore if package.json is missing or malformed
   }
 }
 
 async function main() {
   let projectName = process.argv[2];
+
   if (!projectName) {
     const rl = createInterface({ input: stdin, output: stdout });
     projectName = (await rl.question('Project name: ')).trim();
     rl.close();
   }
 
-  if (!projectName || !validName(projectName)) {
+  if (!projectName || !isValidName(projectName)) {
     console.error('Please provide a valid project name (letters, numbers, ., _ or -).');
     process.exitCode = 1;
     return;
   }
 
   const target = path.resolve(process.cwd(), projectName);
-  try {
-    await access(target);
-    console.error(`Target already exists: ${target}`);
+
+  if (existsSync(target)) {
+    console.error(`Directory already exists: ${target}`);
     process.exitCode = 1;
     return;
-  } catch {
-    // Target does not exist.
   }
 
   await mkdir(target, { recursive: true });
+
   try {
-    console.log(`Downloading ${TEMPLATE} into ${target}...`);
+    console.log(`\nDownloading template ${TEMPLATE} into ${projectName}...`);
+
     let downloadError;
     for (const branch of ['main', 'master']) {
       try {
-        const emitter = degit(`${TEMPLATE}#${branch}`, { cache: false, force: false, verbose: true });
+        const emitter = degit(`${TEMPLATE}#${branch}`, { cache: false, force: false, verbose: false });
         await emitter.clone(target);
         downloadError = undefined;
         break;
-      } catch (error) {
-        downloadError = error;
+      } catch (err) {
+        downloadError = err;
         await rm(target, { recursive: true, force: true });
-        if (branch === 'main') await mkdir(target, { recursive: true });
+        if (branch === 'main') {
+          await mkdir(target, { recursive: true });
+        }
       }
     }
+
     if (downloadError) throw downloadError;
 
+    console.log('Customizing project files...');
     await customizeProject(target, projectName);
 
-    console.log('\nInstalling dependencies (make install)...');
+    console.log('Updating dependencies (npm run update)...');
+    await runCommand('npm', ['run', 'update'], target);
+
+    console.log('Installing dependencies (make install)...');
     await runCommand('make', ['install'], target);
+
+    console.log('Running tests (make test)...');
+    await runCommand('make', ['test'], target);
   } catch (error) {
     await rm(target, { recursive: true, force: true });
-    console.error(`Could not complete project setup: ${error.message}`);
+    console.error(`\nSetup failed: ${error.message}`);
     process.exitCode = 1;
     return;
   }
 
-  console.log('\nProject created and initialized successfully! Next steps:');
-  console.log(`  cd ${projectName}`);
-  console.log('  make docker-dev-up    # Recommended first step to start Docker containers');
-  console.log('  make dev              # Run application in development mode');
+  console.log(`
+Project created successfully!
+
+Next steps:
+  cd ${projectName}
+  make docker-dev-up    (start PostgreSQL, Redis, MinIO via Docker)
+  make dev              (start the NestJS development server)
+`);
 }
 
 main().catch((error) => {

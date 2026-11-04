@@ -1,3 +1,4 @@
+import * as dns from 'dns';
 import * as bodyParser from 'body-parser';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
@@ -8,6 +9,11 @@ import { StructuredLogger } from './common/logging/logger.service.js';
 import { ApiAliasMiddleware } from './common/middleware/api-alias.middleware.js';
 import { AppModule } from './app.module.js';
 import { IdGenerator } from '@bts-soft/core';
+
+// Prioritize IPv4 DNS lookups on Node.js to prevent ECONNRESET/timeouts with localhost services (e.g. MinIO/Redis/Postgres on Windows)
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 async function bootstrap() {
   const logger = new StructuredLogger();
@@ -50,7 +56,7 @@ async function bootstrap() {
 
   app.use('/google/callback', bodyParser.raw({ type: 'application/json' }));
 
-  const port = Number(configService.get<number>('PORT', 3000)) || 3003;
+  const port = Number(configService.get<number>('PORT')) || 3003;
   await app.listen(port);
 
   logger.log(

@@ -12,7 +12,7 @@ describe('NotificationDomainListener', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listener = new NotificationDomainListener(
-      mockNotificationService as unknown as any,
+      mockNotificationService as unknown as never,
     );
   });
 

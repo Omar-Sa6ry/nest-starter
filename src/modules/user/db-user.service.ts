@@ -84,12 +84,19 @@ export class DbUserService {
     if (lastName) user.lastName = lastName;
 
     if (avatarMediaId) {
-      const media = await this.mediaService.findById(avatarMediaId);
-      if (!media) {
+      try {
+        const media = await this.mediaService.findById(avatarMediaId);
+        if (!media) {
+          throw new BadRequestException('Avatar media not found');
+        }
+      } catch (err) {
+        if (err instanceof BadRequestException) {
+          throw err;
+        }
         throw new BadRequestException('Avatar media not found');
       }
       const download = await this.mediaService.getDownloadUrl(userId, avatarMediaId);
-      user.imageUrl = download.downloadUrl || download.url;
+      user.imageUrl = download.downloadUrl;
     }
 
     return this.userRepo.save(user);

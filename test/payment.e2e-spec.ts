@@ -9,6 +9,8 @@ import { PaymentStatus } from '../src/modules/payment/enums/payment-status.enum.
 import { PaymentCurrency } from '../src/modules/payment/enums/payment-currency.enum.js';
 import { StripeStrategy } from '../src/modules/payment/strategies/stripe.strategy.js';
 import { ApiAliasMiddleware } from '../src/common/middleware/api-alias.middleware.js';
+import { DataSource } from 'typeorm';
+import { User } from '../src/modules/user/entity/user.entity.js';
 import type { IAuthenticatedRequest, IAuthenticatedUser } from '../src/common/interfaces/IContext.interface.js';
 
 describe('Payment (e2e)', { timeout: 60_000 }, () => {
@@ -53,7 +55,7 @@ describe('Payment (e2e)', { timeout: 60_000 }, () => {
       .overrideProvider(StripeStrategy)
       .useValue({
         provider: PaymentProvider.STRIPE,
-        initiatePayment: async (params: any) => ({
+        initiatePayment: async (params: { transactionId: string }) => ({
           providerTransactionId: `cs_e2e_${params.transactionId}`,
           checkoutUrl: `https://checkout.stripe.com/pay/cs_e2e_${params.transactionId}`,
           status: PaymentStatus.PENDING,
@@ -64,17 +66,17 @@ describe('Payment (e2e)', { timeout: 60_000 }, () => {
           amountPaid: 150.0,
           currency: 'USD',
         }),
-        refundPayment: async (_params: any) => ({
+        refundPayment: async (_params: { transactionId: string; amount?: number; reason?: string }) => ({
           refundId: `re_e2e_${Date.now()}`,
           status: PaymentStatus.REFUNDED,
         }),
-        verifyAndParseWebhook: async (_headers: any, rawBody: any) => {
+        verifyAndParseWebhook: async (_headers: Record<string, string>, rawBody: string | Record<string, unknown>) => {
           const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody;
           return {
             isValid: true,
-            event: payload.type || 'checkout.session.completed',
-            transactionId: payload?.data?.object?.client_reference_id,
-            providerTransactionId: payload?.data?.object?.id,
+            event: (payload as Record<string, string>)?.type || 'checkout.session.completed',
+            transactionId: ((payload as Record<string, unknown>)?.data as Record<string, unknown>)?.object ? (((payload as Record<string, unknown>)?.data as Record<string, unknown>)?.object as Record<string, string>)?.client_reference_id : undefined,
+            providerTransactionId: ((payload as Record<string, unknown>)?.data as Record<string, unknown>)?.object ? (((payload as Record<string, unknown>)?.data as Record<string, unknown>)?.object as Record<string, string>)?.id : undefined,
             status: PaymentStatus.COMPLETED,
             rawPayload: payload,
           };
@@ -84,10 +86,37 @@ describe('Payment (e2e)', { timeout: 60_000 }, () => {
 
     app = moduleFixture.createNestApplication();
     app.use(
-      (req: any, res: any, next: any) =>
-        new ApiAliasMiddleware().use(req, res, next),
+      (req: unknown, res: unknown, next: () => void) =>
+        new ApiAliasMiddleware().use(req as never, res as never, next),
     );
     await app.init();
+
+    // Seed mock test users for FK constraints
+    const dataSource = app.get(DataSource);
+    const userRepo = dataSource.getRepository(User);
+    await userRepo.upsert(
+      [
+        {
+          id: mockAdminUser.id,
+          email: mockAdminUser.email,
+          passwordHash: 'dummy_hash',
+          firstName: 'Admin',
+          lastName: 'Payment',
+          role: mockAdminUser.role,
+          isActive: true,
+        },
+        {
+          id: mockNormalUser.id,
+          email: mockNormalUser.email,
+          passwordHash: 'dummy_hash',
+          firstName: 'User',
+          lastName: 'Payment',
+          role: mockNormalUser.role,
+          isActive: true,
+        },
+      ],
+      ['id'],
+    );
   });
 
   afterAll(async () => {

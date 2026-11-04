@@ -15,7 +15,7 @@ describe('TypeOrmNotificationOutboxRepository', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     repository = new TypeOrmNotificationOutboxRepository(
-      mockRepo as unknown as any,
+      mockRepo as unknown as never,
     );
   });
 

@@ -15,7 +15,7 @@ describe('TypeOrmNotificationLogRepository', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    repository = new TypeOrmNotificationLogRepository(mockRepo as unknown as any);
+    repository = new TypeOrmNotificationLogRepository(mockRepo as unknown as never);
   });
 
   it('should create and save a notification log with snowflake id', async () => {

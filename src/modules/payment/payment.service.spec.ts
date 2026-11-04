@@ -5,9 +5,15 @@ import { PaymentStatus } from './enums/payment-status.enum.js';
 import { PaymentCurrency } from './enums/payment-currency.enum.js';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 import type { PaymentTransaction } from './entity/payment-transaction.entity.js';
 import type { PaymentStrategyFactory } from './strategies/payment-strategy.factory.js';
 import type { MetricsService } from '../../common/metrics/metrics.service.js';
+import {
+  PaymentCompletedEvent,
+  PaymentFailedEvent,
+  PaymentRefundedEvent,
+} from './events/payment-domain.events.js';
 
 describe('PaymentService', () => {
   let service: PaymentService;
@@ -25,6 +31,9 @@ describe('PaymentService', () => {
   let mockMetrics: {
     requestCounter: { inc: ReturnType<typeof vi.fn> };
     errorCounter: { inc: ReturnType<typeof vi.fn> };
+  };
+  let mockEventEmitter: {
+    emit: ReturnType<typeof vi.fn>;
   };
   let mockStrategy: {
     provider: PaymentProvider;
@@ -88,10 +97,15 @@ describe('PaymentService', () => {
       errorCounter: { inc: vi.fn() },
     };
 
+    mockEventEmitter = {
+      emit: vi.fn(),
+    };
+
     service = new PaymentService(
       mockRepo as unknown as Repository<PaymentTransaction>,
       mockFactory as unknown as PaymentStrategyFactory,
       mockMetrics as unknown as MetricsService,
+      mockEventEmitter as unknown as EventEmitter2,
     );
   });
 
@@ -183,6 +197,10 @@ describe('PaymentService', () => {
       expect(res.status).toBe(PaymentStatus.COMPLETED);
       expect(mockRepo.save).toHaveBeenCalled();
       expect(mockMetrics.requestCounter.inc).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        PaymentCompletedEvent.EVENT_NAME,
+        expect.any(PaymentCompletedEvent),
+      );
     });
 
     it('should record failureReason if verification fails with reason', async () => {
@@ -203,6 +221,10 @@ describe('PaymentService', () => {
       const res = await service.verifyPayment('tx_123');
       expect(res.status).toBe(PaymentStatus.FAILED);
       expect(res.failureReason).toBe('Fraud detected');
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        PaymentFailedEvent.EVENT_NAME,
+        expect.any(PaymentFailedEvent),
+      );
     });
   });
 
@@ -245,6 +267,10 @@ describe('PaymentService', () => {
       expect(res.status).toBe(PaymentStatus.REFUNDED);
       expect(res.metadata?.refundId).toBe('re_test_123');
       expect(mockMetrics.requestCounter.inc).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        PaymentRefundedEvent.EVENT_NAME,
+        expect.any(PaymentRefundedEvent),
+      );
     });
   });
 
@@ -275,6 +301,10 @@ describe('PaymentService', () => {
       expect(res.transactionId).toBe('tx_123');
       expect(res.status).toBe(PaymentStatus.COMPLETED);
       expect(mockRepo.save).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        PaymentCompletedEvent.EVENT_NAME,
+        expect.any(PaymentCompletedEvent),
+      );
     });
 
     it('should look up transaction by providerTransactionId if transactionId not found', async () => {
@@ -295,6 +325,10 @@ describe('PaymentService', () => {
       const res = await service.handleWebhook(PaymentProvider.STRIPE, {}, {});
       expect(res.processed).toBe(true);
       expect(mockRepo.save).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        PaymentCompletedEvent.EVENT_NAME,
+        expect.any(PaymentCompletedEvent),
+      );
     });
   });
 

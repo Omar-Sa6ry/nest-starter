@@ -7,6 +7,7 @@ import {
 import { DbUserService } from './db-user.service.js';
 import { Role } from '../../common/constant/enum.constant.js';
 import type { MediaService } from '../media/services/media.service.js';
+import type { MediaType } from '../media/dto/media.types.js';
 
 describe('DbUserService', () => {
   let service: DbUserService;
@@ -50,11 +51,11 @@ describe('DbUserService', () => {
         id: 'media-1',
         mediaId: 'media-1',
         fileName: 'avatar.png',
-      } as any),
+      } as unknown as MediaType),
       getDownloadUrl: vi.fn().mockResolvedValue({
         downloadUrl: 'https://example.com/avatar.png',
-        url: 'https://example.com/avatar.png',
-      } as any),
+        expiresIn: 3600,
+      }),
     };
 
     service = new DbUserService(
@@ -156,7 +157,9 @@ describe('DbUserService', () => {
 
     it('throws on invalid avatar media id if not found', async () => {
       mockRepo.findOne.mockResolvedValue({ ...sampleUser });
-      vi.mocked(mockMediaService.findById!).mockResolvedValue(null as any);
+      vi.mocked(mockMediaService.findById!).mockRejectedValue(
+        new NotFoundException('Media not found'),
+      );
 
       await expect(
         service.updateProfile('user-1', { avatarMediaId: 'non-existent' }),

@@ -6,10 +6,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { JwtModule } from '@nestjs/jwt';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bullmq';
-import {
-  RedisModule,
-  TranslationModule,
-} from '@bts-soft/core';
+import { RedisModule } from '@bts-soft/core';
 import { Response } from 'express';
 import {
   SESSION_STORE,
@@ -20,9 +17,12 @@ import { DatabaseModule } from './database/database.module.js';
 import { BcryptPasswordHasher } from './security/bcrypt-password.hasher.js';
 import { JwtTokenProvider } from './security/jwt-token.provider.js';
 import { RedisSessionRepository } from './database/repositories/redis-session.repository.js';
-import { IAuthenticatedRequest, IGraphQLContext } from './interfaces/IContext.interface.js';
+import {
+  IAuthenticatedRequest,
+  IGraphQLContext,
+} from './interfaces/IContext.interface.js';
 import { formatGraphQLError } from './graphql/graphql-error.formatter.js';
-import { syncLocales } from './translation/sync-locales.util.js';
+import { AppTranslationModule } from './translation/module-translation.loader.js';
 
 const nodeEnv = process.env.NODE_ENV;
 const isProduction = nodeEnv === 'production';
@@ -36,8 +36,6 @@ const envFilePath = isProduction
       ? 'environments/.env.test'
       : 'environments/.env.development';
 
-const localesPath = syncLocales();
-
 @Global()
 @Module({
   imports: [
@@ -46,10 +44,8 @@ const localesPath = syncLocales();
       envFilePath,
     }),
 
-    TranslationModule.forRoot({
+    AppTranslationModule.forRoot({
       fallbackLanguage: 'en',
-      localesPath,
-      watch: true,
     }),
 
     BullModule.forRootAsync({

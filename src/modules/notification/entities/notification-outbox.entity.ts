@@ -4,9 +4,11 @@ import {
   Column,
   CreateDateColumn,
   Index,
+  BeforeInsert,
 } from 'typeorm';
 import {
   ChannelType,
+  IdGenerator,
   type NotificationMessage,
   type NotificationOutboxState,
 } from '@bts-soft/core';
@@ -14,7 +16,14 @@ import {
 @Entity('notification_outbox')
 export class NotificationOutboxEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
-  id: string;
+  id: string = IdGenerator.generate();
+
+  @BeforeInsert()
+  generateId(): void {
+    if (!this.id) {
+      this.id = IdGenerator.generate();
+    }
+  }
 
   @Column({ type: 'varchar', length: 64 })
   @Index()

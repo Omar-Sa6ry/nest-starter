@@ -20,6 +20,7 @@ export enum Permission {
   // Notification
   NOTIFICATION_SEND = 'NOTIFICATION_SEND',
   NOTIFICATION_MANAGE = 'NOTIFICATION_MANAGE',
+  NOTIFICATION_VIEW = 'NOTIFICATION_VIEW',
 
   // Payment
   PAYMENT_INITIATE = 'PAYMENT_INITIATE',
@@ -30,6 +31,7 @@ export enum Permission {
   MEDIA_UPLOAD = 'MEDIA_UPLOAD',
   MEDIA_VIEW = 'MEDIA_VIEW',
   MEDIA_DELETE = 'MEDIA_DELETE',
+  MEDIA_ADMIN = 'MEDIA_ADMIN',
 }
 
 registerEnumType(Permission, {

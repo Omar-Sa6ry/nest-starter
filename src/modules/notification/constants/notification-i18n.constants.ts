@@ -10,6 +10,7 @@ export const NOTIFICATION_I18N = {
   NOT_FOUND: 'notification.NOT_FOUND',
   FAILED_TO_SEND: 'notification.FAILED_TO_SEND',
   RECIPIENT_OPTOUT: 'notification.RECIPIENT_OPTOUT',
+  INSUFFICIENT_PERMISSIONS: 'notification.INSUFFICIENT_PERMISSIONS',
 } as const;
 
 export type NotificationI18nKey =

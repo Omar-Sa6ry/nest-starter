@@ -7,27 +7,37 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
+  BeforeInsert,
+  type Relation,
 } from 'typeorm';
+import { IdGenerator } from '@bts-soft/core';
 import { PaymentProvider } from '../enums/payment-provider.enum.js';
 import { PaymentStatus } from '../enums/payment-status.enum.js';
 import { PaymentCurrency } from '../enums/payment-currency.enum.js';
-import { User } from '../../user/entity/user.entity.js';
+import type { User } from '../../user/entity/user.entity.js';
 
 @Entity('payment_transactions')
 export class PaymentTransaction {
   @PrimaryColumn({ type: 'varchar', length: 36 })
-  id: string;
+  id: string = IdGenerator.generate();
+
+  @BeforeInsert()
+  generateId(): void {
+    if (!this.id) {
+      this.id = IdGenerator.generate();
+    }
+  }
 
   @Index()
   @Column({ name: 'user_id', type: 'varchar', length: 36 })
   userId: string;
 
-  @ManyToOne(() => User, (user) => user.paymentTransactions, {
-    onDelete: 'CASCADE',
+  @ManyToOne('User', 'paymentTransactions', {
+    onDelete: 'SET NULL',
     nullable: true,
   })
   @JoinColumn({ name: 'user_id' })
-  user?: User;
+  user?: Relation<User>;
 
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;

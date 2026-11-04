@@ -30,11 +30,11 @@ describe('NotificationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new NotificationService(
-      mockCoreService as unknown as any,
-      mockDlqService as unknown as any,
-      mockPreferenceRepo as unknown as any,
+      mockCoreService as unknown as never,
+      mockDlqService as unknown as never,
+      mockPreferenceRepo as unknown as never,
       messageFactory,
-      mockI18n as unknown as any,
+      mockI18n as unknown as never,
     );
   });
 

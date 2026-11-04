@@ -20,5 +20,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "types": ["vitest/globals", "node"]
-  }
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist", "media-frontend", "create-starter"]
 }

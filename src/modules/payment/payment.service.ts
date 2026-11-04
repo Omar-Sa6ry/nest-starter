@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IdGenerator } from '@bts-soft/core';
 import { PaymentTransaction } from './entity/payment-transaction.entity.js';
 import { PaymentStrategyFactory } from './strategies/payment-strategy.factory.js';
@@ -18,6 +19,11 @@ import { PaymentProvider } from './enums/payment-provider.enum.js';
 import { MetricsService } from '../../common/metrics/metrics.service.js';
 import { PAYMENT_METRICS_LABELS } from './constants/payment.constants.js';
 import { PaginatedResult } from '../auth/interfaces/IPaginationResult.interface.js';
+import {
+  PaymentCompletedEvent,
+  PaymentFailedEvent,
+  PaymentRefundedEvent,
+} from './events/payment-domain.events.js';
 
 @Injectable()
 export class PaymentService {
@@ -28,6 +34,7 @@ export class PaymentService {
     private readonly transactionRepository: Repository<PaymentTransaction>,
     private readonly strategyFactory: PaymentStrategyFactory,
     private readonly metricsService: MetricsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async initiatePayment(
@@ -133,6 +140,18 @@ export class PaymentService {
       statusCode: '200',
     });
 
+    if (transaction.status === PaymentStatus.COMPLETED) {
+      this.eventEmitter.emit(
+        PaymentCompletedEvent.EVENT_NAME,
+        new PaymentCompletedEvent(transaction),
+      );
+    } else if (transaction.status === PaymentStatus.FAILED) {
+      this.eventEmitter.emit(
+        PaymentFailedEvent.EVENT_NAME,
+        new PaymentFailedEvent(transaction, transaction.failureReason),
+      );
+    }
+
     return transaction;
   }
 
@@ -182,6 +201,13 @@ export class PaymentService {
       statusCode: '200',
     });
 
+    if (transaction.status === PaymentStatus.REFUNDED) {
+      this.eventEmitter.emit(
+        PaymentRefundedEvent.EVENT_NAME,
+        new PaymentRefundedEvent(transaction),
+      );
+    }
+
     return transaction;
   }
 
@@ -224,6 +250,23 @@ export class PaymentService {
       this.logger.log(
         `Webhook updated transaction ${transaction.id} to status ${transaction.status}`,
       );
+
+      if (transaction.status === PaymentStatus.COMPLETED) {
+        this.eventEmitter.emit(
+          PaymentCompletedEvent.EVENT_NAME,
+          new PaymentCompletedEvent(transaction),
+        );
+      } else if (transaction.status === PaymentStatus.FAILED) {
+        this.eventEmitter.emit(
+          PaymentFailedEvent.EVENT_NAME,
+          new PaymentFailedEvent(transaction, transaction.failureReason),
+        );
+      } else if (transaction.status === PaymentStatus.REFUNDED) {
+        this.eventEmitter.emit(
+          PaymentRefundedEvent.EVENT_NAME,
+          new PaymentRefundedEvent(transaction),
+        );
+      }
     }
 
     this.metricsService.requestCounter.inc({

@@ -9,5 +9,6 @@
   "JOBS_PURGED": "Dead letter jobs purged successfully",
   "NOT_FOUND": "Notification or job not found",
   "FAILED_TO_SEND": "Failed to deliver notification",
-  "RECIPIENT_OPTOUT": "Recipient has opted out of this notification channel"
+  "RECIPIENT_OPTOUT": "Recipient has opted out of this notification channel",
+  "INSUFFICIENT_PERMISSIONS": "Insufficient permissions"
 }

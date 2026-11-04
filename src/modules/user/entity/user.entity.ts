@@ -8,17 +8,28 @@ import {
   Index,
   Check,
   OneToMany,
+  BeforeInsert,
+  type Relation,
 } from 'typeorm';
+import { IdGenerator } from '@bts-soft/core';
 import { Role } from '../../../common/constant/enum.constant.js';
-import { Media } from '../../media/entities/media.entity.js';
-import { PaymentTransaction } from '../../payment/entity/payment-transaction.entity.js';
+import type { Media } from '../../media/entities/media.entity.js';
+import type { PaymentTransaction } from '../../payment/entity/payment-transaction.entity.js';
+import type { NotificationLogEntity } from '../../notification/entities/notification-log.entity.js';
 
 @Entity('users')
 @Unique(['email', 'phoneNumber'])
 @Check(`"password" IS NOT NULL OR "google_id" IS NOT NULL`)
 export class User {
   @PrimaryColumn({ type: 'varchar', length: 36 })
-  id: string;
+  id: string = IdGenerator.generate();
+
+  @BeforeInsert()
+  protected generateId?(): void {
+    if (!this.id) {
+      this.id = IdGenerator.generate();
+    }
+  }
 
   @Column({ unique: true, length: 255 })
   email: string;
@@ -60,11 +71,14 @@ export class User {
   })
   imageUrl?: string;
 
-  @OneToMany(() => Media, (media) => media.uploadedBy)
-  media?: Media[];
+  @OneToMany('Media', 'uploadedBy')
+  media?: Relation<Media[]>;
 
-  @OneToMany(() => PaymentTransaction, (tx) => tx.user)
-  paymentTransactions?: PaymentTransaction[];
+  @OneToMany('PaymentTransaction', 'user')
+  paymentTransactions?: Relation<PaymentTransaction[]>;
+
+  @OneToMany('NotificationLogEntity', 'user')
+  notifications?: Relation<NotificationLogEntity[]>;
 
   @CreateDateColumn({ name: 'created_at' })
   @Index()

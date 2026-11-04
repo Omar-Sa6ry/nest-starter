@@ -17,7 +17,6 @@ import {
 } from './dtos/notification.types.js';
 import { IntResponse } from '../../common/graphql/general-response.type.js';
 import { NOTIFICATION_I18N } from './constants/notification-i18n.constants.js';
-import { COMMON_I18N } from '../../common/constant/common-i18n.constants.js';
 import { Auth } from '../../common/decorator/auth.decorator.js';
 import { Permission, Role } from '../../common/constant/enum.constant.js';
 import type { IAuthenticatedUser } from '../../common/interfaces/IContext.interface.js';
@@ -54,9 +53,13 @@ export class NotificationResolver {
     }
 
     // Resolve user in DB by ID or Email
-    let targetUser = await this.userService.findById(targetRecipient).catch(() => null);
+    let targetUser = await this.userService
+      .findById(targetRecipient)
+      .catch(() => null);
     if (!targetUser) {
-      targetUser = await this.userService.findByEmail(targetRecipient).catch(() => null);
+      targetUser = await this.userService
+        .findByEmail(targetRecipient)
+        .catch(() => null);
     }
 
     const isOwner =
@@ -66,7 +69,7 @@ export class NotificationResolver {
 
     if (!isOwner) {
       throw new ForbiddenException(
-        this.i18n.t(COMMON_I18N.INSUFFICIENT_PERMISSIONS),
+        await this.i18n.t(NOTIFICATION_I18N.INSUFFICIENT_PERMISSIONS),
       );
     }
   }
