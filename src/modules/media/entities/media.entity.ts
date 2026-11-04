@@ -9,19 +9,30 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  BeforeInsert,
+  type Relation,
 } from 'typeorm';
 import { IdGenerator } from '@bts-soft/core';
 import { MediaStatus, MediaTypeCategory } from '../constants/media.constants.js';
 import type { IMediaMetadata } from '../interfaces/IMediaMetadata.interface.js';
-import { User } from '../../user/entity/user.entity.js';
-import { MediaVersion } from './media-version.entity.js';
-import { UploadSession } from './upload-session.entity.js';
-import { MediaJob } from './media-job.entity.js';
+import type { User } from '../../user/entity/user.entity.js';
+import type { MediaVersion } from './media-version.entity.js';
+import type { UploadSession } from './upload-session.entity.js';
+import type { MediaJob } from './media-job.entity.js';
 
 @Entity('media')
+@Index(['uploadedById', 'status'])
+@Index(['uploadedById', 'mediaType'])
 export class Media {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id: string = IdGenerator.generate();
+
+  @BeforeInsert()
+  generateId(): void {
+    if (!this.id) {
+      this.id = IdGenerator.generate();
+    }
+  }
 
   @Column({ name: 'file_name', type: 'varchar', length: 255 })
   fileName!: string;
@@ -59,30 +70,33 @@ export class Media {
   uploadId?: string | null;
 
   @Index()
-  @Column({ name: 'uploaded_by_id', type: 'varchar', length: 36 })
-  uploadedById!: string;
+  @Column({ name: 'uploaded_by_id', type: 'varchar', length: 64, nullable: true })
+  uploadedById?: string | null;
 
-  @ManyToOne(() => User, (user) => user.media, {
-    onDelete: 'CASCADE',
+  @ManyToOne('User', 'media', {
+    onDelete: 'SET NULL',
     nullable: true,
   })
   @JoinColumn({ name: 'uploaded_by_id' })
-  uploadedBy?: User;
+  uploadedBy?: Relation<User>;
 
-  @OneToMany(() => MediaVersion, (version) => version.media)
-  versions?: MediaVersion[];
+  @OneToMany('MediaVersion', 'media')
+  versions?: Relation<MediaVersion[]>;
 
-  @OneToMany(() => UploadSession, (session) => session.media)
-  uploadSessions?: UploadSession[];
+  @OneToMany('UploadSession', 'media')
+  uploadSessions?: Relation<UploadSession[]>;
 
-  @OneToMany(() => MediaJob, (job) => job.media)
-  jobs?: MediaJob[];
+  @OneToMany('MediaJob', 'media')
+  jobs?: Relation<MediaJob[]>;
 
   @Column({ name: 'checksum', type: 'varchar', length: 128, nullable: true })
   checksum?: string | null;
 
   @Column({ name: 'is_public', type: 'boolean', default: false })
   isPublic!: boolean;
+
+  @Column({ type: 'jsonb', default: [] })
+  tags: string[] = [];
 
   @Column({ type: 'jsonb', default: {} })
   metadata!: IMediaMetadata;

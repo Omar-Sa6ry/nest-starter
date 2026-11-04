@@ -1,4 +1,6 @@
 import { registerEnumType } from '@nestjs/graphql';
+import { MediaJobType, MediaJobStatus } from '../enums/media-job.enum.js';
+import { UploadSessionStatus } from '../enums/upload-session.enum.js';
 
 export const MEDIA_CONSTANTS = {
   MAX_FILE_SIZE_BYTES: 100 * 1024 * 1024 * 1024, // 100 GB (Enterprise scale)
@@ -45,6 +47,21 @@ export enum VersionType {
   HLS = 'hls',
 }
 
+export const MIME_TO_CATEGORY_MAP: ReadonlyArray<{ readonly prefix: string; readonly category: MediaTypeCategory }> = [
+  { prefix: 'image/', category: MediaTypeCategory.IMAGE },
+  { prefix: 'video/', category: MediaTypeCategory.VIDEO },
+  { prefix: 'audio/', category: MediaTypeCategory.AUDIO },
+] as const;
+
+export const MIME_KEYWORD_MAP: ReadonlyArray<{ readonly keyword: string; readonly category: MediaTypeCategory }> = [
+  { keyword: 'pdf', category: MediaTypeCategory.DOCUMENT },
+  { keyword: 'document', category: MediaTypeCategory.DOCUMENT },
+  { keyword: 'text/', category: MediaTypeCategory.DOCUMENT },
+  { keyword: 'zip', category: MediaTypeCategory.ARCHIVE },
+  { keyword: 'tar', category: MediaTypeCategory.ARCHIVE },
+  { keyword: 'archive', category: MediaTypeCategory.ARCHIVE },
+] as const;
+
 // State transition validation matrix matching system design standards
 export const ALLOWED_STATUS_TRANSITIONS: Record<MediaStatus, MediaStatus[]> = {
   [MediaStatus.PENDING]: [
@@ -89,4 +106,19 @@ registerEnumType(MediaTypeCategory, {
 registerEnumType(VersionType, {
   name: 'VersionType',
   description: 'Types of renditions or versions generated for a media file',
+});
+
+registerEnumType(MediaJobType, {
+  name: 'MediaJobType',
+  description: 'Type of processing job on media',
+});
+
+registerEnumType(MediaJobStatus, {
+  name: 'MediaJobStatus',
+  description: 'Status of processing job on media',
+});
+
+registerEnumType(UploadSessionStatus, {
+  name: 'UploadSessionStatus',
+  description: 'Status of multipart upload session',
 });

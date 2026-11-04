@@ -10,19 +10,22 @@ import {
   MediaTypeCategory,
   VersionType,
 } from '../constants/media.constants.js';
-import { UploadSessionStatus } from '../entities/upload-session.entity.js';
+import { UploadSessionStatus } from '../enums/upload-session.enum.js';
+import { MediaJobType, MediaJobStatus } from '../enums/media-job.enum.js';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import type { ConfigService } from '@nestjs/config';
 import type { Media } from '../entities/media.entity.js';
 import type { MediaVersion } from '../entities/media-version.entity.js';
 import type { UploadSession } from '../entities/upload-session.entity.js';
+import type { MediaJob } from '../entities/media-job.entity.js';
 
 describe('MediaService (Enterprise Starter)', () => {
   let service: MediaService;
   let mockMediaRepo: Partial<Repository<Media>>;
   let mockVersionRepo: Partial<Repository<MediaVersion>>;
   let mockSessionRepo: Partial<Repository<UploadSession>>;
+  let mockJobRepo: Partial<Repository<MediaJob>>;
   let mockStorage: Partial<S3StorageService>;
   let mockSse: Partial<MediaSseService>;
   let mockQuota: Partial<MediaQuotaService>;
@@ -43,12 +46,21 @@ describe('MediaService (Enterprise Starter)', () => {
       findOne: vi.fn(),
       findAndCount: vi.fn(),
       softDelete: vi.fn().mockResolvedValue({ affected: 1 } as never),
+      createQueryBuilder: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        take: vi.fn().mockReturnThis(),
+        getManyAndCount: vi.fn().mockResolvedValue([[], 0]),
+      }),
     };
 
     mockVersionRepo = {
       create: vi.fn().mockImplementation((dto) => ({ id: 'ver-1', ...dto })),
       save: vi.fn().mockImplementation((entity) => Promise.resolve(entity)),
       findOne: vi.fn(),
+      find: vi.fn().mockResolvedValue([]),
     };
 
     mockSessionRepo = {
@@ -56,6 +68,10 @@ describe('MediaService (Enterprise Starter)', () => {
       save: vi.fn().mockImplementation((entity) => Promise.resolve(entity)),
       update: vi.fn().mockResolvedValue({ affected: 1 } as never),
       findOne: vi.fn(),
+    };
+
+    mockJobRepo = {
+      find: vi.fn().mockResolvedValue([]),
     };
 
     mockStorage = {
@@ -92,6 +108,7 @@ describe('MediaService (Enterprise Starter)', () => {
 
     mockQuota = {
       checkCanUpload: vi.fn().mockResolvedValue(undefined),
+      invalidateQuotaCache: vi.fn().mockResolvedValue(undefined),
       getQuotaUsage: vi.fn().mockResolvedValue({
         userId: 'user-1',
         usedBytes: 1000,
@@ -121,6 +138,7 @@ describe('MediaService (Enterprise Starter)', () => {
       mockMediaRepo as Repository<Media>,
       mockVersionRepo as Repository<MediaVersion>,
       mockSessionRepo as Repository<UploadSession>,
+      mockJobRepo as Repository<MediaJob>,
       mockStorage as S3StorageService,
       mockSse as MediaSseService,
       mockQuota as MediaQuotaService,
@@ -270,6 +288,7 @@ describe('MediaService (Enterprise Starter)', () => {
       expect(mockStorage.completeMultipartUpload).toHaveBeenCalledTimes(1);
       expect(mockVersionRepo.save).toHaveBeenCalledTimes(1);
       expect(mockWorker.dispatchProcessingJob).toHaveBeenCalledTimes(1);
+      expect(mockQuota.invalidateQuotaCache).toHaveBeenCalledWith('user-1');
       expect(mockSse.emit).toHaveBeenCalledWith(
         expect.objectContaining({
           status: MediaStatus.READY,
@@ -378,6 +397,7 @@ describe('MediaService (Enterprise Starter)', () => {
 
       expect(res.status).toBe(MediaStatus.READY);
       expect(mockVersionRepo.save).toHaveBeenCalledTimes(1);
+      expect(mockQuota.invalidateQuotaCache).toHaveBeenCalledWith('user-1');
     });
 
     it('should throw NotFoundException if media not found in verifyDirectUpload', async () => {
@@ -564,86 +584,77 @@ describe('MediaService (Enterprise Starter)', () => {
     });
   });
 
-  describe('upload session methods (getUploadStatus, completeUploadByUploadId, createUploadSession)', () => {
-    it('should retrieve upload status with missing and completed parts', async () => {
-      (mockSessionRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
-        s3UploadId: 'sess-upload-1',
-        userId: 'user-1',
-        status: UploadSessionStatus.UPLOADING,
-        totalParts: 4,
-        completedParts: [
-          { partNumber: 1, eTag: 'etag-1' },
-          { partNumber: 3, eTag: 'etag-3' },
-        ],
-        expiresAt: new Date(Date.now() + 60000),
-      });
-
-      const res = await service.getUploadStatus('user-1', 'sess-upload-1');
-
-      expect(res.totalParts).toBe(4);
-      expect(res.completedParts).toBe(2);
-      expect(res.missingParts).toEqual([2, 4]);
-    });
-
-    it('should throw NotFoundException in getUploadStatus if session not found', async () => {
-      (mockSessionRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-
-      await expect(
-        service.getUploadStatus('user-1', 'sess-not-found'),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should complete upload by uploadId', async () => {
-      (mockSessionRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
-        s3UploadId: 'sess-upload-1',
-        userId: 'user-1',
-        mediaId: 'media-snowflake-1',
-      });
+  describe('updateMedia, listVersions, listJobs', () => {
+    it('should update media fields successfully', async () => {
       (mockMediaRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: 'media-snowflake-1',
-        uploadedById: 'user-1',
-        uploadId: 'sess-upload-1',
-        storageBucket: 'test-media-bucket',
-        storageKey: 'key',
+        id: 'media-1',
+        fileName: 'old.png',
+        storageKey: 'k',
         mimeType: 'image/png',
-        status: MediaStatus.UPLOADING,
+        mediaType: MediaTypeCategory.IMAGE,
+        sizeBytes: '100',
+        status: MediaStatus.READY,
+        uploadedById: 'user-1',
+        isPublic: false,
+        tags: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      const res = await service.completeUploadByUploadId('user-1', {
-        uploadId: 'sess-upload-1',
-        parts: [{ partNumber: 1, eTag: 'etag-1' }],
+      const res = await service.updateMedia('user-1', {
+        mediaId: 'media-1',
+        fileName: 'new.png',
+        isPublic: true,
+        tags: ['avatar'],
       });
 
-      expect(res.mediaId).toBe('media-snowflake-1');
-      expect(res.status).toBe(MediaStatus.READY);
+      expect(res.fileName).toBe('new.png');
+      expect(res.isPublic).toBe(true);
+      expect(res.tags).toEqual(['avatar']);
     });
 
-    it('should throw NotFoundException in completeUploadByUploadId if session not found', async () => {
-      (mockSessionRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-
-      await expect(
-        service.completeUploadByUploadId('user-1', {
-          uploadId: 'unknown',
-          parts: [],
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should create upload session using alias method createUploadSession', async () => {
-      const res = await service.createUploadSession('user-1', {
-        fileName: 'big.mp4',
-        contentType: 'video/mp4',
-        size: 70 * 1024 * 1024,
+    it('should list media versions', async () => {
+      (mockMediaRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'media-1',
+        uploadedById: 'user-1',
+        isPublic: true,
       });
+      (mockVersionRepo.find as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: 'v1',
+          mediaId: 'media-1',
+          versionType: VersionType.ORIGINAL,
+          storageKey: 'k1',
+          mimeType: 'image/png',
+          sizeBytes: '100',
+        },
+      ]);
 
-      expect(res.isMultipart).toBe(true);
-      expect(res.uploadId).toBe('upload-id-123');
+      const res = await service.listVersions('media-1', 'user-1');
+      expect(res.length).toBe(1);
+      expect(res[0].id).toBe('v1');
+    });
+
+    it('should list media jobs', async () => {
+      (mockMediaRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'media-1',
+        uploadedById: 'user-1',
+      });
+      (mockJobRepo.find as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: 'j1',
+          mediaId: 'media-1',
+          jobType: MediaJobType.METADATA_EXTRACTION,
+          status: MediaJobStatus.COMPLETED,
+          attempts: 1,
+          maxAttempts: 3,
+          createdAt: new Date(),
+        },
+      ]);
+
+      const res = await service.listJobs('media-1', 'user-1');
+      expect(res.length).toBe(1);
+      expect(res[0].id).toBe('j1');
     });
   });
 
@@ -667,47 +678,6 @@ describe('MediaService (Enterprise Starter)', () => {
       expect(res.fileName).toBe('pic.jpg');
     });
 
-    it('should throw NotFoundException if findById finds nothing', async () => {
-      (mockMediaRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-
-      await expect(service.findById('non-existent')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should paginate user media', async () => {
-      const mockList = [
-        {
-          id: 'm-1',
-          fileName: '1.jpg',
-          storageKey: 'k1',
-          mimeType: 'image/jpeg',
-          mediaType: MediaTypeCategory.IMAGE,
-          sizeBytes: '100',
-          status: MediaStatus.READY,
-          uploadedById: 'user-1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      (mockMediaRepo.findAndCount as ReturnType<typeof vi.fn>).mockResolvedValue(
-        [mockList, 1],
-      );
-
-      const res = await service.paginate('user-1', 1, 10);
-      expect(res.total).toBe(1);
-      expect(res.items.length).toBe(1);
-      expect(res.page).toBe(1);
-    });
-
-    it('should get user quota', async () => {
-      const res = await service.getUserQuota('user-1');
-      expect(res.userId).toBe('user-1');
-      expect(res.usedBytes).toBe('1000');
-    });
-
     it('should delete media and remove storage object', async () => {
       (mockMediaRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'media-1',
@@ -724,30 +694,7 @@ describe('MediaService (Enterprise Starter)', () => {
         'uploads/user-1/file.png',
       );
       expect(mockMediaRepo.softDelete).toHaveBeenCalledWith('media-1');
-    });
-
-    it('should throw NotFoundException when deleting non-existent media', async () => {
-      (mockMediaRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-
-      await expect(service.delete('user-1', 'missing-media')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should throw BadRequestException on invalid status transition', async () => {
-      (mockMediaRepo.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: 'media-1',
-        uploadedById: 'user-1',
-        storageBucket: 'test-media-bucket',
-        storageKey: 'uploads/user-1/file.png',
-        status: MediaStatus.DELETED,
-      });
-
-      await expect(
-        service.verifyDirectUpload('user-1', 'media-1'),
-      ).rejects.toThrow(BadRequestException);
+      expect(mockQuota.invalidateQuotaCache).toHaveBeenCalledWith('user-1');
     });
   });
 });

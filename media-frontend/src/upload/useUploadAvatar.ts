@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  completeUpload,
-  createUploadSession,
   updateProfileAvatar,
-} from '../api/operations';
-import { sha256Hex, uploadFileParts } from './presignedUpload';
+} from '../api/operations_v2';
+import { AdvancedUploader } from './advancedUploader';
 import type { MediaStatus, UploadProgressState } from './types';
 import { mediaSocket } from './websocket';
 
@@ -19,13 +17,9 @@ const IDLE: UploadProgressState = {
   status: null,
 };
 
-/**
- * Orchestrates: createUploadSession → direct S3 presigned PUT → completeUpload →
- * updateProfile(avatarMediaId) (resolved by user-service over gRPC).
- */
 export function useUploadAvatar(accessToken: string | null): {
   progress: UploadProgressState;
-  uploadAvatar: (file: File) => Promise<{ mediaId: string }>;
+  uploadAvatar: (file: File, tokenOverride?: string) => Promise<{ mediaId: string }>;
   reset: () => void;
 } {
   const [progress, setProgress] = useState<UploadProgressState>(IDLE);
@@ -48,8 +42,11 @@ export function useUploadAvatar(accessToken: string | null): {
     };
   }, [accessToken]);
 
-  const uploadAvatar = useCallback(async (file: File) => {
-    const checksum = await sha256Hex(file);
+  const uploadAvatar = useCallback(async (file: File, tokenOverride?: string) => {
+    const activeToken = tokenOverride || accessTokenRef.current;
+    if (activeToken) {
+      localStorage.setItem('accessToken', activeToken);
+    }
     setProgress({
       ...IDLE,
       phase: 'CREATING_SESSION',
@@ -57,33 +54,28 @@ export function useUploadAvatar(accessToken: string | null): {
       status: 'PENDING',
     });
 
-    const session = await createUploadSession({
-      fileName: file.name,
-      contentType: file.type || 'application/octet-stream',
-      size: file.size,
-      checksum,
+    const mediaId = await new Promise<string>((resolve, reject) => {
+      const uploader = new AdvancedUploader(file, (info) => {
+        if (info.phase === 'UPLOADING') {
+          setProgress((p) => ({
+            ...p,
+            mediaId: uploader.getMediaId() || p.mediaId,
+            phase: 'UPLOADING',
+            uploadedBytes: info.uploadedBytes,
+            totalBytes: info.totalBytes,
+          }));
+        } else if (info.phase === 'COMPLETING') {
+          setProgress((p) => ({ ...p, phase: 'COMPLETING' }));
+        } else if (info.phase === 'DONE') {
+          const mid = uploader.getMediaId();
+          if (mid) resolve(mid);
+          else reject(new Error('No mediaId from uploader'));
+        } else if (info.phase === 'ERROR') {
+          reject(new Error(info.error || 'Upload failed'));
+        }
+      });
+      uploader.start().catch(reject);
     });
-
-    setProgress({
-      mediaId: session.mediaId,
-      uploadId: session.uploadId,
-      phase: 'UPLOADING',
-      uploadedBytes: 0,
-      totalBytes: file.size,
-      uploadedParts: 0,
-      totalParts: session.totalParts,
-      status: 'UPLOADING',
-    });
-
-    const parts = await uploadFileParts(file, session, {
-      onProgress: (uploadedBytes) =>
-        setProgress((p) => ({ ...p, uploadedBytes })),
-      onPartComplete: (partNumber) =>
-        setProgress((p) => ({ ...p, uploadedParts: Math.max(p.uploadedParts, partNumber) })),
-    });
-
-    setProgress((p) => ({ ...p, phase: 'COMPLETING' }));
-    const { mediaId } = await completeUpload(session.uploadId, parts);
 
     setProgress((p) => ({
       ...p,
@@ -92,10 +84,9 @@ export function useUploadAvatar(accessToken: string | null): {
       status: 'UPLOADED',
     }));
 
-    // user-service resolves the avatar URL via gRPC → media-service (ownership check)
     await updateProfileAvatar(mediaId);
 
-    setProgress((p) => ({ ...p, phase: 'DONE', status: p.status ?? 'PROCESSING' }));
+    setProgress((p) => ({ ...p, phase: 'DONE', status: 'READY' }));
     return { mediaId };
   }, []);
 

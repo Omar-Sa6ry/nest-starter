@@ -19,6 +19,7 @@ import { MEDIA_CONSTANTS } from '../constants/media.constants.js';
 export class S3StorageService implements IStorageProvider {
   private readonly logger = new Logger(S3StorageService.name);
   private readonly s3Client: S3Client;
+  private readonly presignClient: S3Client;
   private readonly defaultBucket: string;
   private readonly publicEndpoint?: string;
 
@@ -36,6 +37,7 @@ export class S3StorageService implements IStorageProvider {
     this.defaultBucket =
       this.configService.get<string>('S3_BUCKET_NAME') || 'nest-starter-media';
 
+    // Internal client for server-to-storage operations (uses S3_ENDPOINT, e.g. 127.0.0.1 or docker network)
     this.s3Client = new S3Client({
       region,
       endpoint: endpoint || undefined,
@@ -45,23 +47,22 @@ export class S3StorageService implements IStorageProvider {
       },
       forcePathStyle,
     });
+
+    // Dedicated client for presigned URLs using publicEndpoint so SigV4 Host header matches browser requests
+    this.presignClient = new S3Client({
+      region,
+      endpoint: this.publicEndpoint || endpoint || undefined,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+      forcePathStyle,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
+    });
   }
 
-  private presignableUrl(rawUrl: string): string {
-    if (!this.publicEndpoint) {
-      return rawUrl;
-    }
-    try {
-      const parsedRaw = new URL(rawUrl);
-      const parsedPublic = new URL(this.publicEndpoint);
-      parsedRaw.protocol = parsedPublic.protocol;
-      parsedRaw.host = parsedPublic.host;
-      parsedRaw.port = parsedPublic.port;
-      return parsedRaw.toString();
-    } catch {
-      return rawUrl;
-    }
-  }
+
 
   getDefaultBucket(): string {
     return this.defaultBucket;
@@ -78,10 +79,9 @@ export class S3StorageService implements IStorageProvider {
       Key: key,
       ContentType: contentType,
     });
-    const url = await getSignedUrl(this.s3Client, command, {
+    return getSignedUrl(this.presignClient, command, {
       expiresIn: expiresInSeconds,
     });
-    return this.presignableUrl(url);
   }
 
   async getPresignedGetUrl(
@@ -93,10 +93,9 @@ export class S3StorageService implements IStorageProvider {
       Bucket: bucket,
       Key: key,
     });
-    const url = await getSignedUrl(this.s3Client, command, {
+    return getSignedUrl(this.presignClient, command, {
       expiresIn: expiresInSeconds,
     });
-    return this.presignableUrl(url);
   }
 
   async createMultipartUpload(
@@ -129,10 +128,9 @@ export class S3StorageService implements IStorageProvider {
       UploadId: uploadId,
       PartNumber: partNumber,
     });
-    const url = await getSignedUrl(this.s3Client, command, {
+    return getSignedUrl(this.presignClient, command, {
       expiresIn: expiresInSeconds,
     });
-    return this.presignableUrl(url);
   }
 
   async completeMultipartUpload(

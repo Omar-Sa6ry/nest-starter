@@ -11,14 +11,17 @@ mutation CreateUploadSession($input: CreateUploadSessionInput!) {
     data {
       mediaId
       uploadId
-      s3UploadId
+      uploadUrl
       partSize
       totalParts
       expiresAt
-      presignedParts {
+      storageKey
+      isMultipart
+      expiresInSeconds
+      parts {
         partNumber
-        presignedUrl
         uploadUrl
+        presignedUrl
       }
     }
   }
@@ -295,33 +298,10 @@ query DownloadUrl($mediaId: String!, $versionType: String, $expirySeconds: Int) 
     timeStamp
     data {
       mediaId
-      url
       downloadUrl
       expiresInSeconds
       expiresAt
       contentType
-    }
-  }
-}
-```
-
----
-
-#### `getMediaDownloadUrl`
-Generates a time-limited presigned GET URL for downloading media.
-
-```graphql
-query GetMediaDownloadUrl($mediaId: String!) {
-  getMediaDownloadUrl(mediaId: $mediaId) {
-    success
-    statusCode
-    message
-    timeStamp
-    data {
-      mediaId
-      downloadUrl
-      url
-      expiresInSeconds
     }
   }
 }

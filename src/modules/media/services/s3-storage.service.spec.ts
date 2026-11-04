@@ -8,37 +8,42 @@ vi.mock('@aws-sdk/client-s3', () => {
   return {
     S3Client: class {
       send = mockSend;
+      public config: Record<string, unknown>;
+      constructor(public options: Record<string, unknown> = {}) {
+        this.config = options;
+      }
     },
     PutObjectCommand: class {
-      constructor(public args: any) {}
+      constructor(public args: Record<string, unknown>) {}
     },
     GetObjectCommand: class {
-      constructor(public args: any) {}
+      constructor(public args: Record<string, unknown>) {}
     },
     CreateMultipartUploadCommand: class {
-      constructor(public args: any) {}
+      constructor(public args: Record<string, unknown>) {}
     },
     UploadPartCommand: class {
-      constructor(public args: any) {}
+      constructor(public args: Record<string, unknown>) {}
     },
     CompleteMultipartUploadCommand: class {
-      constructor(public args: any) {}
+      constructor(public args: Record<string, unknown>) {}
     },
     AbortMultipartUploadCommand: class {
-      constructor(public args: any) {}
+      constructor(public args: Record<string, unknown>) {}
     },
     HeadObjectCommand: class {
-      constructor(public args: any) {}
+      constructor(public args: Record<string, unknown>) {}
     },
     DeleteObjectCommand: class {
-      constructor(public args: any) {}
+      constructor(public args: Record<string, unknown>) {}
     },
   };
 });
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
-  getSignedUrl: vi.fn().mockImplementation(async (_client, command) => {
-    return `https://s3.mock.aws/${command.args?.Bucket || 'bucket'}/${command.args?.Key || 'key'}`;
+  getSignedUrl: vi.fn().mockImplementation(async (client, command) => {
+    const base = client?.options?.endpoint || 'https://s3.mock.aws';
+    return `${base}/${command.args?.Bucket || 'bucket'}/${command.args?.Key || 'key'}`;
   }),
 }));
 
@@ -73,6 +78,19 @@ describe('S3StorageService', () => {
   it('should generate presigned PUT url and replace endpoint with publicEndpoint', async () => {
     const url = await service.getPresignedPutUrl('test-bucket', 'file.jpg', 'image/jpeg', 3600);
     expect(url).toContain('https://cdn.example.com/test-bucket/file.jpg');
+  });
+
+  it('should leave URL untouched if publicEndpoint is not configured', async () => {
+    const rawConfigService: Partial<ConfigService> = {
+      get: vi.fn().mockImplementation((key: string) => {
+        if (key === 'S3_PUBLIC_ENDPOINT') return undefined;
+        if (key === 'S3_BUCKET_NAME') return 'test-bucket';
+        return undefined;
+      }),
+    };
+    const rawService = new S3StorageService(rawConfigService as ConfigService);
+    const url = await rawService.getPresignedPutUrl('test-bucket', 'file.jpg', 'image/jpeg', 3600);
+    expect(url).toContain('https://s3.mock.aws/test-bucket/file.jpg');
   });
 
   it('should generate presigned GET url', async () => {

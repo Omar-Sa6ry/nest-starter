@@ -1,0 +1,8 @@
+export enum UploadSessionStatus {
+  PENDING = 'PENDING',
+  UPLOADING = 'UPLOADING',
+  COMPLETED = 'COMPLETED',
+  ABORTED = 'ABORTED',
+  EXPIRED = 'EXPIRED',
+}
+

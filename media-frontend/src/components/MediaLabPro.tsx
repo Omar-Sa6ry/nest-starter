@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AdvancedUploader, type UploadProgressInfo } from '../upload/advancedUploader';
 import { mediaSocket } from '../upload/websocket';
-import { getDownloadUrl, deleteMedia } from '../api/operations';
+import { getDownloadUrl, deleteMedia } from '../api/operations_v2';
 import { formatBytes } from '../upload/useFileUpload';
 import { downloadWithResume } from '../upload/resumableDownload';
 

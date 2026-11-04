@@ -9,29 +9,45 @@ import {
   IsBoolean,
   ValidateNested,
   ArrayMinSize,
+  MaxLength,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { MEDIA_CONSTANTS } from '../constants/media.constants.js';
+import {
+  MEDIA_CONSTANTS,
+  MediaTypeCategory,
+  MediaStatus,
+} from '../constants/media.constants.js';
 
 @InputType()
 export class RequestUploadInput {
-  @Field(() => String, { description: 'Original file name including extension' })
+  @Field(() => String, {
+    description: 'Original file name including extension',
+  })
   @IsString()
   @IsNotEmpty()
   fileName!: string;
 
-  @Field(() => String, { description: 'MIME type of the file (e.g. image/png, video/mp4)' })
+  @Field(() => String, {
+    description: 'MIME type of the file (e.g. image/png, video/mp4)',
+  })
   @IsString()
   @IsNotEmpty()
   mimeType!: string;
 
-  @Field(() => Number, { description: 'Total file size in bytes (up to 100GB)' })
+  @Field(() => Number, {
+    description: 'Total file size in bytes (up to 100GB)',
+  })
   @IsNumber()
   @Min(1)
   @Max(MEDIA_CONSTANTS.MAX_FILE_SIZE_BYTES)
   sizeBytes!: number;
 
-  @Field(() => Boolean, { nullable: true, defaultValue: false, description: 'Whether the file should be publicly accessible' })
+  @Field(() => Boolean, {
+    nullable: true,
+    defaultValue: false,
+    description: 'Whether the file should be publicly accessible',
+  })
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
@@ -145,3 +161,49 @@ export class CompleteUploadInput {
   parts!: UploadPartInput[];
 }
 
+@InputType()
+export class UpdateMediaInput {
+  @Field(() => String)
+  @IsString()
+  @IsNotEmpty()
+  mediaId!: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  fileName?: string;
+
+  @Field(() => Boolean, { nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
+
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  @IsString({ each: true })
+  tags?: string[];
+}
+
+@InputType()
+export class MediaListFilterInput {
+  @Field(() => MediaTypeCategory, { nullable: true })
+  @IsOptional()
+  @IsEnum(MediaTypeCategory)
+  mediaType?: MediaTypeCategory;
+
+  @Field(() => MediaStatus, { nullable: true })
+  @IsOptional()
+  @IsEnum(MediaStatus)
+  status?: MediaStatus;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  fromDate?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  toDate?: string;
+}

@@ -1,11 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { IStorageProvider } from '../interfaces/IStorageProvider.interface.js';
 
-export interface IMagicByteSignature {
-  mime: string;
-  signature: number[];
-  offset?: number;
-}
+export const EXTENSION_MIME_MAP: Readonly<Record<string, string[]>> = {
+  jpg: ['image/jpeg'],
+  jpeg: ['image/jpeg'],
+  png: ['image/png'],
+  gif: ['image/gif'],
+  webp: ['image/webp'],
+  mp4: ['video/mp4'],
+  mov: ['video/quicktime'],
+  webm: ['video/webm'],
+  mp3: ['audio/mpeg', 'audio/mp3'],
+  wav: ['audio/wav', 'audio/x-wav'],
+  pdf: ['application/pdf'],
+  zip: ['application/zip', 'application/x-zip-compressed'],
+} as const;
 
 @Injectable()
 export class MediaValidationService {
@@ -16,22 +25,7 @@ export class MediaValidationService {
     const ext = fileName.split('.').pop()?.toLowerCase();
     if (!ext) return false;
 
-    const mimeMap: Record<string, string[]> = {
-      jpg: ['image/jpeg'],
-      jpeg: ['image/jpeg'],
-      png: ['image/png'],
-      gif: ['image/gif'],
-      webp: ['image/webp'],
-      mp4: ['video/mp4'],
-      mov: ['video/quicktime'],
-      webm: ['video/webm'],
-      mp3: ['audio/mpeg', 'audio/mp3'],
-      wav: ['audio/wav', 'audio/x-wav'],
-      pdf: ['application/pdf'],
-      zip: ['application/zip', 'application/x-zip-compressed'],
-    };
-
-    const allowed = mimeMap[ext];
+    const allowed = EXTENSION_MIME_MAP[ext];
     if (!allowed) {
       this.logger.debug(
         `File extension ${ext} not strictly mapped to MIME ${mimeType}`,

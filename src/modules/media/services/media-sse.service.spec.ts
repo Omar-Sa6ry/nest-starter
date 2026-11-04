@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { MediaSseService } from './media-sse.service.js';
 import { MediaStatus } from '../constants/media.constants.js';
-import { firstValueFrom, toArray, take } from 'rxjs';
+import { firstValueFrom, take } from 'rxjs';
+import type { IMediaEventPayload } from '../interfaces/IMediaMetadata.interface.js';
 
 describe('MediaSseService', () => {
   it('should stream all emitted events', async () => {
@@ -17,7 +18,8 @@ describe('MediaSseService', () => {
     const event = await eventPromise;
     expect(event.type).toBe('media_update');
     expect(event.id).toContain('media-1-');
-    expect((event.data as any).status).toBe(MediaStatus.PENDING);
+    const data = event.data as IMediaEventPayload;
+    expect(data.status).toBe(MediaStatus.PENDING);
   });
 
   it('should filter events for specific mediaId in streamForMedia', async () => {
@@ -39,8 +41,8 @@ describe('MediaSseService', () => {
     });
 
     const event = await eventPromise;
-    expect((event.data as any).mediaId).toBe('media-target');
-    expect((event.data as any).status).toBe(MediaStatus.READY);
+    const data = event.data as IMediaEventPayload;
+    expect(data.mediaId).toBe('media-target');
+    expect(data.status).toBe(MediaStatus.READY);
   });
 });
-

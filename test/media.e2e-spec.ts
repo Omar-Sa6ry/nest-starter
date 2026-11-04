@@ -6,21 +6,12 @@ import { RoleGuard } from '../src/common/guard/role.guard.js';
 import { Role, Permission } from '../src/common/constant/enum.constant.js';
 import { S3StorageService } from '../src/modules/media/services/s3-storage.service.js';
 import { ApiAliasMiddleware } from '../src/common/middleware/api-alias.middleware.js';
+import { DataSource } from 'typeorm';
+import { User } from '../src/modules/user/entity/user.entity.js';
 import type { IAuthenticatedRequest, IAuthenticatedUser } from '../src/common/interfaces/IContext.interface.js';
 
 describe('Media (e2e)', { timeout: 60_000 }, () => {
   let app: INestApplication;
-
-  const mockAdminUser: IAuthenticatedUser = {
-    id: 'admin-media-e2e',
-    email: 'admin.media@example.com',
-    role: Role.ADMIN,
-    permissions: [
-      Permission.MEDIA_UPLOAD,
-      Permission.MEDIA_VIEW,
-      Permission.MEDIA_DELETE,
-    ],
-  };
 
   const mockNormalUser: IAuthenticatedUser = {
     id: 'user-media-e2e',
@@ -63,7 +54,7 @@ describe('Media (e2e)', { timeout: 60_000 }, () => {
       _bucket: string,
       key: string,
       _uploadId: string,
-      _parts: any[],
+      _parts: Array<{ ETag: string; PartNumber: number }>,
     ) => ({
       location: `https://s3.local/e2e-media-bucket/${key}`,
       eTag: '"e2e-complete-etag"',
@@ -99,11 +90,27 @@ describe('Media (e2e)', { timeout: 60_000 }, () => {
 
     app = moduleFixture.createNestApplication();
     app.use(
-      (req: any, res: any, next: any) =>
-        new ApiAliasMiddleware().use(req, res, next),
+      (req: unknown, res: unknown, next: () => void) =>
+        new ApiAliasMiddleware().use(req as never, res as never, next),
     );
     await app.init();
     await app.listen(0);
+
+    // Seed mock test user for FK constraint
+    const dataSource = app.get(DataSource);
+    const userRepo = dataSource.getRepository(User);
+    await userRepo.upsert(
+      {
+        id: mockNormalUser.id,
+        email: mockNormalUser.email,
+        passwordHash: 'dummy_hash',
+        firstName: 'Media',
+        lastName: 'E2E',
+        role: mockNormalUser.role,
+        isActive: true,
+      },
+      ['id'],
+    );
   });
 
   afterAll(async () => {
@@ -348,7 +355,7 @@ describe('Media (e2e)', { timeout: 60_000 }, () => {
 
       const query = `
         query GetDownloadUrl($mediaId: String!) {
-          getMediaDownloadUrl(mediaId: $mediaId) {
+          downloadUrl(mediaId: $mediaId) {
             success
             data {
               mediaId
@@ -367,7 +374,7 @@ describe('Media (e2e)', { timeout: 60_000 }, () => {
 
       expect(res.status).toBe(200);
       expect(res.body.errors).toBeUndefined();
-      expect(res.body.data.getMediaDownloadUrl.data.downloadUrl).toContain('action=get');
+      expect(res.body.data.downloadUrl.data.downloadUrl).toContain('action=get');
     });
 
     it('getMyMedia: retrieves paginated media list of authenticated user', async () => {

@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MediaQuotaService } from './media-quota.service.js';
-import { MediaStatus } from '../constants/media.constants.js';
-import { UploadSessionStatus } from '../entities/upload-session.entity.js';
 import { ForbiddenException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import type { RedisService } from '@bts-soft/cache';
@@ -109,4 +107,3 @@ describe('MediaQuotaService', () => {
     });
   });
 });
-

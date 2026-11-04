@@ -1,3 +1,5 @@
+import type { MediaTypeCategory, MediaStatus } from '../constants/media.constants.js';
+
 export interface IMediaMetadata {
   etag?: string;
   sha256?: string;
@@ -30,5 +32,32 @@ export interface IMediaEventPayload {
   uploadedBytes?: number;
   totalBytes?: number;
   message?: string;
-  timestamp: string;
+  timestamp?: string;
+}
+
+export interface ISseMessageEvent {
+  data: string | object;
+  id?: string;
+  type?: string;
+  retry?: number;
+}
+
+export interface IMediaPaginationFilter {
+  mediaType?: MediaTypeCategory;
+  status?: MediaStatus;
+  fromDate?: string;
+  toDate?: string;
+  tags?: string[];
+}
+
+export interface IMediaUpdatePayload {
+  fileName?: string;
+  isPublic?: boolean;
+  tags?: string[];
+}
+
+export interface IPresignedPart {
+  partNumber: number;
+  uploadUrl: string;
+  presignedUrl?: string;
 }

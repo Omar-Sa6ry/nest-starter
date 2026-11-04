@@ -5,11 +5,19 @@
   "UPLOAD_ABORTED": "Multipart upload aborted successfully",
   "DOWNLOAD_URL_GENERATED": "Download URL generated successfully",
   "MEDIA_FOUND": "Media retrieved successfully",
+  "MEDIA_LIST_FOUND": "Media list retrieved successfully",
   "MEDIA_DELETED": "Media deleted successfully",
+  "MEDIA_UPDATED": "Media updated successfully",
   "MEDIA_NOT_FOUND": "Media not found",
   "INVALID_FILE_SIZE": "File size exceeds allowed limit",
   "INVALID_PART_NUMBER": "Invalid upload part number",
   "STORAGE_ERROR": "Storage operation failed",
-  "VERIFICATION_FAILED": "Upload verification failed"
+  "VERIFICATION_FAILED": "Upload verification failed",
+  "QUOTA_EXCEEDED": "Storage quota exceeded",
+  "CONCURRENT_LIMIT": "Concurrent upload limit reached",
+  "UPLOAD_STATUS_RETRIEVED": "Upload status retrieved successfully",
+  "QUOTA_RETRIEVED": "Quota retrieved successfully",
+  "VERSIONS_FOUND": "Media versions retrieved successfully",
+  "JOBS_FOUND": "Media jobs retrieved successfully",
+  "INVALID_STATUS_TRANSITION": "Invalid media status transition"
 }
-

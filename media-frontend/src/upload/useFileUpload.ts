@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import {
   completeUpload,
   createUploadSession,
-} from '../api/operations';
+} from '../api/operations_v2';
 import { sha256Hex, uploadFileParts } from './presignedUpload';
 import type { CompletedPart, MediaStatus, UploadProgressState } from './types';
 

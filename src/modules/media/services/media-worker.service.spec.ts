@@ -30,5 +30,32 @@ describe('MediaWorkerService', () => {
       }),
     );
   });
-});
 
+  it('should enqueue thumbnail and scan jobs', async () => {
+    const mockQueue: Partial<Queue<IMediaJobData, void, string>> = {
+      add: vi.fn().mockResolvedValue({ id: 'job-1' } as never),
+    };
+    const service = new MediaWorkerService(mockQueue as Queue<IMediaJobData, void, string>);
+    const payload: IMediaJobData = {
+      mediaId: 'm1',
+      storageKey: 'k',
+      bucket: 'b',
+      mimeType: 'image/png',
+      userId: 'u1',
+    };
+
+    await service.dispatchThumbnailJob(payload);
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      MEDIA_JOB_NAMES.THUMBNAIL_GENERATION,
+      payload,
+      expect.any(Object),
+    );
+
+    await service.dispatchScanJob(payload);
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      MEDIA_JOB_NAMES.SECURITY_SCAN,
+      payload,
+      expect.any(Object),
+    );
+  });
+});

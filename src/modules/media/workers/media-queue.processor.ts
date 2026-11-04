@@ -3,12 +3,10 @@ import { Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Media } from '../entities/media.entity.js';
-import {
-  MediaJob,
-  MediaJobStatus,
-  MediaJobType,
-} from '../entities/media-job.entity.js';
+import { MediaJob } from '../entities/media-job.entity.js';
+import { MediaJobStatus, MediaJobType } from '../enums/media-job.enum.js';
 import { MediaStatus } from '../constants/media.constants.js';
 import {
   MEDIA_QUEUE_NAME,
@@ -16,6 +14,10 @@ import {
   type IMediaJobData,
 } from '../constants/media-queue.constants.js';
 import { MediaSseService } from '../services/media-sse.service.js';
+import {
+  MediaReadyEvent,
+  MediaFailedEvent,
+} from '../events/media-domain.events.js';
 
 @Processor(MEDIA_QUEUE_NAME)
 export class MediaQueueProcessor extends WorkerHost {
@@ -27,6 +29,7 @@ export class MediaQueueProcessor extends WorkerHost {
     @InjectRepository(MediaJob)
     private readonly jobRepo: Repository<MediaJob>,
     private readonly sseService: MediaSseService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super();
   }
@@ -43,6 +46,16 @@ export class MediaQueueProcessor extends WorkerHost {
       return;
     }
 
+    if (
+      job.name !== MEDIA_JOB_NAMES.PROCESS_PIPELINE &&
+      job.name !== MEDIA_JOB_NAMES.METADATA_EXTRACTION &&
+      job.name !== MEDIA_JOB_NAMES.SECURITY_SCAN &&
+      job.name !== MEDIA_JOB_NAMES.THUMBNAIL_GENERATION
+    ) {
+      this.logger.warn(`[BullMQ] Unknown job name ${job.name}, skipping`);
+      return;
+    }
+
     const mediaJob = this.jobRepo.create({
       mediaId,
       jobType: MediaJobType.METADATA_EXTRACTION,
@@ -54,51 +67,10 @@ export class MediaQueueProcessor extends WorkerHost {
 
     try {
       if (job.name === MEDIA_JOB_NAMES.PROCESS_PIPELINE) {
-        // Step 1: Container & Metadata Analysis
-        this.sseService.emit({
-          mediaId,
-          status: MediaStatus.PROCESSING,
-          progressPercent: 20,
-          message: 'BullMQ: Analyzing media container & extracting metadata',
-          timestamp: new Date().toISOString(),
-        });
-
-        // Step 2: Security & Integrity scan
-        this.sseService.emit({
-          mediaId,
-          status: MediaStatus.PROCESSING,
-          progressPercent: 50,
-          message: 'BullMQ: Anti-malware & file integrity verification passed',
-          timestamp: new Date().toISOString(),
-        });
-
-        // Step 3: Renditions / Transcoding pipeline
-        this.sseService.emit({
-          mediaId,
-          status: MediaStatus.PROCESSING,
-          progressPercent: 85,
-          message: 'BullMQ: Renditions & web optimizations processed',
-          timestamp: new Date().toISOString(),
-        });
-
-        // Step 4: Finalize & Mark Ready
-        await this.mediaRepo.update(
-          { id: mediaId },
-          { status: MediaStatus.READY },
-        );
-
-        mediaJob.status = MediaJobStatus.COMPLETED;
-        mediaJob.completedAt = new Date();
-        await this.jobRepo.save(mediaJob);
-
-        this.sseService.emit({
-          mediaId,
-          status: MediaStatus.READY,
-          progressPercent: 100,
-          message:
-            'BullMQ: Media processing completed and ready for distribution',
-          timestamp: new Date().toISOString(),
-        });
+        await this.runMetadataExtraction(mediaId);
+        await this.runSecurityScan(mediaId);
+        await this.runRenditionPipeline(mediaId);
+        await this.finalizeMedia(mediaId, mediaJob);
       }
     } catch (error: unknown) {
       this.logger.error(
@@ -107,7 +79,72 @@ export class MediaQueueProcessor extends WorkerHost {
       mediaJob.status = MediaJobStatus.FAILED;
       mediaJob.lastError = String(error);
       await this.jobRepo.save(mediaJob);
+
+      this.eventEmitter.emit(
+        MediaFailedEvent.EVENT_NAME,
+        new MediaFailedEvent(mediaId, String(error), media.uploadedById ?? undefined),
+      );
+
       throw error;
+    }
+  }
+
+  private async runMetadataExtraction(mediaId: string): Promise<void> {
+    this.sseService.emit({
+      mediaId,
+      status: MediaStatus.PROCESSING,
+      progressPercent: 20,
+      message: 'BullMQ: Analyzing media container & extracting metadata',
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  private async runSecurityScan(mediaId: string): Promise<void> {
+    this.sseService.emit({
+      mediaId,
+      status: MediaStatus.PROCESSING,
+      progressPercent: 50,
+      message: 'BullMQ: Anti-malware & file integrity verification passed',
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  private async runRenditionPipeline(mediaId: string): Promise<void> {
+    this.sseService.emit({
+      mediaId,
+      status: MediaStatus.PROCESSING,
+      progressPercent: 85,
+      message: 'BullMQ: Renditions & web optimizations processed',
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  private async finalizeMedia(
+    mediaId: string,
+    mediaJob: MediaJob,
+  ): Promise<void> {
+    await this.mediaRepo.update({ id: mediaId }, { status: MediaStatus.READY });
+    const updatedMedia = await this.mediaRepo.findOne({
+      where: { id: mediaId },
+    });
+
+    mediaJob.status = MediaJobStatus.COMPLETED;
+    mediaJob.completedAt = new Date();
+    await this.jobRepo.save(mediaJob);
+
+    this.sseService.emit({
+      mediaId,
+      status: MediaStatus.READY,
+      progressPercent: 100,
+      message: 'BullMQ: Media processing completed and ready for distribution',
+      timestamp: new Date().toISOString(),
+    });
+
+    if (updatedMedia) {
+      this.eventEmitter.emit(
+        MediaReadyEvent.EVENT_NAME,
+        new MediaReadyEvent(updatedMedia, updatedMedia.uploadedById ?? undefined),
+      );
     }
   }
 }

@@ -3,10 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RedisService } from '@bts-soft/cache';
 import { Media } from '../entities/media.entity.js';
-import {
-  UploadSession,
-  UploadSessionStatus,
-} from '../entities/upload-session.entity.js';
+import { UploadSession } from '../entities/upload-session.entity.js';
+import { UploadSessionStatus } from '../enums/upload-session.enum.js';
 import { MEDIA_CONSTANTS, MediaStatus } from '../constants/media.constants.js';
 import type { IQuotaUsage } from '../interfaces/IMediaMetadata.interface.js';
 

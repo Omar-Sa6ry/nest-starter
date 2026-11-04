@@ -1,5 +1,5 @@
 import { uploadStorage } from './indexedDB';
-import { createUploadSession, completeUpload, getUploadStatus, abortUpload } from '../api/operations';
+import { createUploadSession, completeUpload, getUploadStatus, abortUpload } from '../api/operations_v2';
 import { sha256Hex } from './presignedUpload';
 
 export interface PartUploadStatus {
@@ -305,7 +305,7 @@ export class AdvancedUploader {
 
   private uploadPartXHR(url: string, blob: Blob, onProgress: (bytes: number) => void, signal?: AbortSignal): Promise<string> {
     return new Promise((resolve, reject) => {
-      const uploadUrl = url.replace('http://localstack-srv:4566', `http://${window.location.hostname}:4566`).replace('http://minio:9000', `http://${window.location.hostname}:9000`);
+      const uploadUrl = url;
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', uploadUrl);
       // Content-Type omitted to avoid S3 403

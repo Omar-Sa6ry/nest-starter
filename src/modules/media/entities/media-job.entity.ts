@@ -7,9 +7,10 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
+  type Relation,
 } from 'typeorm';
 import { IdGenerator } from '@bts-soft/core';
-import { Media } from './media.entity.js';
+import type { Media } from './media.entity.js';
 
 export enum MediaJobType {
   SCAN = 'SCAN',
@@ -38,11 +39,11 @@ export class MediaJob {
   @Column({ name: 'media_id', type: 'varchar', length: 36 })
   mediaId!: string;
 
-  @ManyToOne(() => Media, (media) => media.jobs, {
+  @ManyToOne('Media', 'jobs', {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'media_id' })
-  media?: Media;
+  media?: Relation<Media>;
 
   @Column({
     name: 'job_type',

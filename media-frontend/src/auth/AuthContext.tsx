@@ -6,14 +6,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { fetchMyProfile, login, register, type RegisterArgs } from '../api/operations';
+import { fetchMyProfile, login, register, type RegisterArgs } from '../api/operations_v2';
 import type { User } from '../upload/types';
 
 interface AuthContextValue {
   user: User | null;
   accessToken: string | null;
   loading: boolean;
-  registerAndLogin: (input: RegisterArgs) => Promise<void>;
+  registerAndLogin: (input: RegisterArgs) => Promise<string>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   logout: () => void;
@@ -45,11 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const registerAndLogin = useCallback(
-    async (input: RegisterArgs) => {
+    async (input: RegisterArgs): Promise<string> => {
       setLoading(true);
       try {
         const payload = await register(input);
         applyAuth(payload);
+        return payload.accessToken;
       } finally {
         setLoading(false);
       }

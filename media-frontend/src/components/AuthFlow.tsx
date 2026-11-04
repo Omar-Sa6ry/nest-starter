@@ -55,9 +55,9 @@ export function AuthFlow({ onComplete }: { onComplete: () => void }) {
     reset();
     try {
       if (mode === 'register') {
-        await registerAndLogin({ email, password, firstName, lastName, phoneNumber });
+        const token = await registerAndLogin({ email, password, firstName, lastName, phoneNumber });
         if (avatar.file) {
-          await uploadAvatar(avatar.file);
+          await uploadAvatar(avatar.file, token);
         }
       } else {
         await loginWithEmail(email, password);

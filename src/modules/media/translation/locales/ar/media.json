@@ -5,11 +5,19 @@
   "UPLOAD_ABORTED": "تم إلغاء عملية الرفع بنجاح",
   "DOWNLOAD_URL_GENERATED": "تم إنشاء رابط التحميل بنجاح",
   "MEDIA_FOUND": "تم استرجاع بيانات الملف بنجاح",
+  "MEDIA_LIST_FOUND": "تم استرجاع قائمة الملفات بنجاح",
   "MEDIA_DELETED": "تم حذف الملف بنجاح",
+  "MEDIA_UPDATED": "تم تحديث بيانات الملف بنجاح",
   "MEDIA_NOT_FOUND": "الملف غير موجود",
   "INVALID_FILE_SIZE": "حجم الملف يتجاوز الحد المسموح به",
   "INVALID_PART_NUMBER": "رقم الجزء غير صالح",
   "STORAGE_ERROR": "حدث خطأ أثناء الاتصال بمزود التخزين",
-  "VERIFICATION_FAILED": "فشل التحقق من وجود الملف في وحدة التخزين"
+  "VERIFICATION_FAILED": "فشل التحقق من وجود الملف في وحدة التخزين",
+  "QUOTA_EXCEEDED": "تم تجاوز حصة التخزين المخصصة",
+  "CONCURRENT_LIMIT": "تم الوصول إلى الحد الأقصى لعمليات الرفع المتزامنة",
+  "UPLOAD_STATUS_RETRIEVED": "تم استرجاع حالة الرفع بنجاح",
+  "QUOTA_RETRIEVED": "تم استرجاع بيانات الحصة بنجاح",
+  "VERSIONS_FOUND": "تم استرجاع نسخ الملف بنجاح",
+  "JOBS_FOUND": "تم استرجاع مهام معالجة الملف بنجاح",
+  "INVALID_STATUS_TRANSITION": "انتقال حالة الوسائط غير صالح"
 }
-

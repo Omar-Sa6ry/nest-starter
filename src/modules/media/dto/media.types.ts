@@ -4,6 +4,7 @@ import {
   MediaTypeCategory,
   VersionType,
 } from '../constants/media.constants.js';
+import { MediaJobType, MediaJobStatus } from '../enums/media-job.enum.js';
 
 @ObjectType({ description: 'Presigned upload part item for multipart uploads' })
 export class PresignedPartUrlType {
@@ -30,14 +31,8 @@ export class PresignedUploadResponseData {
   @Field(() => String, { nullable: true })
   uploadId?: string;
 
-  @Field(() => String, { nullable: true })
-  s3UploadId?: string;
-
   @Field(() => [PresignedPartUrlType], { nullable: true })
   parts?: PresignedPartUrlType[];
-
-  @Field(() => [PresignedPartUrlType], { nullable: true })
-  presignedParts?: PresignedPartUrlType[];
 
   @Field(() => Int, { nullable: true })
   partSize?: number;
@@ -106,6 +101,39 @@ export class QuotaUsageType {
   maxConcurrent!: number;
 }
 
+@ObjectType({ description: 'Media processing job item' })
+export class MediaJobObjectType {
+  @Field(() => String)
+  id!: string;
+
+  @Field(() => String)
+  mediaId!: string;
+
+  @Field(() => MediaJobType)
+  jobType!: MediaJobType;
+
+  @Field(() => MediaJobStatus)
+  status!: MediaJobStatus;
+
+  @Field(() => Int)
+  attempts!: number;
+
+  @Field(() => Int)
+  maxAttempts!: number;
+
+  @Field(() => String, { nullable: true })
+  lastError?: string | null;
+
+  @Field(() => String, { nullable: true })
+  startedAt?: string | null;
+
+  @Field(() => String, { nullable: true })
+  completedAt?: string | null;
+
+  @Field(() => String)
+  createdAt!: string;
+}
+
 @ObjectType({ description: 'Media item details' })
 export class MediaType {
   @Field(() => String)
@@ -113,8 +141,7 @@ export class MediaType {
 
   @Field(() => String, {
     nullable: true,
-    description:
-      'Alias for id to ensure backward compatibility with frontend clients',
+    description: 'Deprecated alias for id to ensure backwards compatibility',
   })
   mediaId?: string;
 
@@ -144,6 +171,9 @@ export class MediaType {
 
   @Field(() => Boolean)
   isPublic!: boolean;
+
+  @Field(() => [String], { defaultValue: [] })
+  tags!: string[];
 
   @Field(() => String, { nullable: true })
   downloadUrl?: string;
@@ -179,8 +209,7 @@ export class MediaResponse {
 }
 
 @ObjectType({
-  description:
-    'Standard General Response wrapper for presigned upload creation',
+  description: 'Standard General Response wrapper for presigned upload creation',
 })
 export class PresignedUploadResponse {
   @Field(() => Boolean)
@@ -206,9 +235,6 @@ export class DownloadUrlData {
 
   @Field(() => String)
   downloadUrl!: string;
-
-  @Field(() => String, { nullable: true })
-  url?: string;
 
   @Field(() => Int)
   expiresInSeconds!: number;
@@ -352,4 +378,40 @@ export class MediaGeneralOperationResponse {
 
   @Field(() => String)
   timeStamp!: string;
+}
+
+@ObjectType({ description: 'Response wrapper for media versions list' })
+export class MediaVersionResponse {
+  @Field(() => Boolean)
+  success!: boolean;
+
+  @Field(() => Int)
+  statusCode!: number;
+
+  @Field(() => String)
+  message!: string;
+
+  @Field(() => String)
+  timeStamp!: string;
+
+  @Field(() => [MediaVersionType], { nullable: true })
+  data?: MediaVersionType[] | null;
+}
+
+@ObjectType({ description: 'Response wrapper for media jobs list' })
+export class MediaJobResponse {
+  @Field(() => Boolean)
+  success!: boolean;
+
+  @Field(() => Int)
+  statusCode!: number;
+
+  @Field(() => String)
+  message!: string;
+
+  @Field(() => String)
+  timeStamp!: string;
+
+  @Field(() => [MediaJobObjectType], { nullable: true })
+  data?: MediaJobObjectType[] | null;
 }

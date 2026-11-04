@@ -3,33 +3,44 @@ import {
   PrimaryColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
   Index,
   ManyToOne,
   JoinColumn,
+  BeforeInsert,
+  type Relation,
 } from 'typeorm';
 import { IdGenerator } from '@bts-soft/core';
 import { VersionType } from '../constants/media.constants.js';
-import { Media } from './media.entity.js';
+import type { Media } from './media.entity.js';
 
 @Entity('media_versions')
+@Index(['mediaId', 'versionType'], { unique: true })
 export class MediaVersion {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id: string = IdGenerator.generate();
+
+  @BeforeInsert()
+  generateId(): void {
+    if (!this.id) {
+      this.id = IdGenerator.generate();
+    }
+  }
 
   @Index()
   @Column({ name: 'media_id', type: 'varchar', length: 36 })
   mediaId!: string;
 
-  @ManyToOne(() => Media, (media) => media.versions, {
+  @ManyToOne('Media', 'versions', {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'media_id' })
-  media?: Media;
+  media?: Relation<Media>;
 
   @Column({
     name: 'version_type',
-    type: 'varchar',
-    length: 32,
+    type: 'enum',
+    enum: VersionType,
     default: VersionType.ORIGINAL,
   })
   versionType!: VersionType;
@@ -57,5 +68,7 @@ export class MediaVersion {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date = new Date();
-}
 
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  updatedAt: Date = new Date();
+}

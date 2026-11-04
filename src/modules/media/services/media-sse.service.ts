@@ -1,14 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Subject, Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
-import type { IMediaEventPayload } from '../interfaces/IMediaMetadata.interface.js';
-
-export interface ISseMessageEvent {
-  data: string | object;
-  id?: string;
-  type?: string;
-  retry?: number;
-}
+import type {
+  IMediaEventPayload,
+  ISseMessageEvent,
+} from '../interfaces/IMediaMetadata.interface.js';
 
 @Injectable()
 export class MediaSseService {
@@ -39,4 +35,3 @@ export class MediaSseService {
     );
   }
 }
-

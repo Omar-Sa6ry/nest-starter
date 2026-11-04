@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,8 +11,9 @@ import { Media } from '../entities/media.entity.js';
 import { MediaVersion } from '../entities/media-version.entity.js';
 import {
   UploadSession,
-  UploadSessionStatus,
 } from '../entities/upload-session.entity.js';
+import { UploadSessionStatus } from '../enums/upload-session.enum.js';
+import { MediaJob } from '../entities/media-job.entity.js';
 import { S3StorageService } from './s3-storage.service.js';
 import { MediaSseService } from './media-sse.service.js';
 import { MediaQuotaService } from './media-quota.service.js';
@@ -22,6 +24,8 @@ import {
   MediaTypeCategory,
   VersionType,
   ALLOWED_STATUS_TRANSITIONS,
+  MIME_TO_CATEGORY_MAP,
+  MIME_KEYWORD_MAP,
 } from '../constants/media.constants.js';
 import type {
   RequestUploadInput,
@@ -29,6 +33,8 @@ import type {
   CompleteMultipartUploadInput,
   CreateUploadSessionInput,
   CompleteUploadInput,
+  UpdateMediaInput,
+  MediaListFilterInput,
 } from '../input/media.inputs.js';
 import type {
   PresignedUploadResponseData,
@@ -37,11 +43,16 @@ import type {
   QuotaUsageType,
   UploadStatusData,
   DownloadUrlData,
+  MediaVersionType,
+  MediaJobObjectType,
 } from '../dto/media.types.js';
+import type { IPresignedPart } from '../interfaces/IMediaMetadata.interface.js';
 import { MediaWorkerService } from './media-worker.service.js';
 
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger(MediaService.name);
+
   constructor(
     @InjectRepository(Media)
     private readonly mediaRepo: Repository<Media>,
@@ -49,6 +60,8 @@ export class MediaService {
     private readonly versionRepo: Repository<MediaVersion>,
     @InjectRepository(UploadSession)
     private readonly sessionRepo: Repository<UploadSession>,
+    @InjectRepository(MediaJob)
+    private readonly jobRepo: Repository<MediaJob>,
     private readonly storage: S3StorageService,
     private readonly sseService: MediaSseService,
     private readonly quotaService: MediaQuotaService,
@@ -61,6 +74,8 @@ export class MediaService {
     userId: string,
     input: RequestUploadInput,
   ): Promise<PresignedUploadResponseData> {
+    const start = Date.now();
+    this.logger.log(`Requesting upload for user ${userId}, file: ${input.fileName}`);
     // 1. Quota & Limits
     await this.quotaService.checkCanUpload(userId, input.sizeBytes);
 
@@ -97,6 +112,7 @@ export class MediaService {
       uploadedById: userId,
       checksum: null,
       isPublic: input.isPublic ?? false,
+      tags: [],
       metadata: {},
     });
 
@@ -121,6 +137,7 @@ export class MediaService {
         timestamp: new Date().toISOString(),
       });
 
+      this.logger.debug(`requestUpload completed in ${Date.now() - start}ms`);
       return {
         mediaId: saved.id,
         uploadUrl,
@@ -130,13 +147,17 @@ export class MediaService {
       };
     }
 
-    return this.initiateMultipartInternal(saved, input.sizeBytes, expiresIn);
+    const result = await this.initiateMultipartInternal(saved, input.sizeBytes, expiresIn);
+    this.logger.debug(`requestUpload completed in ${Date.now() - start}ms`);
+    return result;
   }
 
   async initiateMultipartUpload(
     userId: string,
     input: InitiateMultipartUploadInput,
   ): Promise<PresignedUploadResponseData> {
+    const start = Date.now();
+    this.logger.log(`Initiating multipart upload for user ${userId}, file: ${input.fileName}`);
     await this.quotaService.checkCanUpload(userId, input.sizeBytes);
 
     if (
@@ -167,6 +188,7 @@ export class MediaService {
       uploadedById: userId,
       checksum: null,
       isPublic: input.isPublic ?? false,
+      tags: [],
       metadata: {},
     });
 
@@ -175,12 +197,14 @@ export class MediaService {
       this.configService.get<number>('MEDIA_PRESIGNED_EXPIRES_IN') ||
       MEDIA_CONSTANTS.DEFAULT_PRESIGNED_EXPIRES_SECONDS;
 
-    return this.initiateMultipartInternal(
+    const result = await this.initiateMultipartInternal(
       saved,
       input.sizeBytes,
       expiresIn,
       input.partSizeBytes,
     );
+    this.logger.debug(`initiateMultipartUpload completed in ${Date.now() - start}ms`);
+    return result;
   }
 
   private async initiateMultipartInternal(
@@ -196,7 +220,6 @@ export class MediaService {
       media.mimeType,
     );
 
-    // Automatically compute partSize: Must satisfy S3 rule (max 10,000 parts) and min part size (5MB)
     const minPartSizeForFile = Math.ceil(
       totalBytes / MEDIA_CONSTANTS.MAX_PARTS_COUNT,
     );
@@ -215,11 +238,7 @@ export class MediaService {
       );
     }
 
-    const parts: Array<{
-      partNumber: number;
-      uploadUrl: string;
-      presignedUrl: string;
-    }> = [];
+    const parts: IPresignedPart[] = [];
     for (let partNumber = 1; partNumber <= partsCount; partNumber++) {
       const uploadUrl = await this.storage.getPresignedUploadPartUrl(
         bucket,
@@ -239,10 +258,9 @@ export class MediaService {
     };
     await this.mediaRepo.save(media);
 
-    // Save session record
     const session = this.sessionRepo.create({
       mediaId: media.id,
-      userId: media.uploadedById,
+      userId: media.uploadedById ?? undefined,
       s3UploadId: uploadId,
       objectKey: media.storageKey,
       totalParts: partsCount,
@@ -265,9 +283,7 @@ export class MediaService {
     return {
       mediaId: media.id,
       uploadId,
-      s3UploadId: uploadId,
       parts,
-      presignedParts: parts,
       partSize,
       totalParts: partsCount,
       expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
@@ -281,6 +297,8 @@ export class MediaService {
     userId: string,
     input: CompleteMultipartUploadInput,
   ): Promise<MediaType> {
+    const start = Date.now();
+    this.logger.log(`Completing multipart upload for media ${input.mediaId}`);
     const media = await this.mediaRepo.findOne({
       where: { id: input.mediaId, uploadedById: userId },
     });
@@ -307,7 +325,6 @@ export class MediaService {
       parts,
     );
 
-    // Object verification via HeadObject
     const isValid = await this.validationService.validateStorageObject(
       this.storage,
       media.storageBucket,
@@ -330,7 +347,6 @@ export class MediaService {
     };
     const saved = await this.mediaRepo.save(media);
 
-    // Register original version rendition
     await this.registerVersion(
       saved,
       VersionType.ORIGINAL,
@@ -338,13 +354,13 @@ export class MediaService {
       saved.sizeBytes,
     );
 
-    // Update upload session
     await this.sessionRepo.update(
       { mediaId: media.id },
       { status: UploadSessionStatus.COMPLETED, completedParts: input.parts },
     );
 
-    // Dispatch background processing job (transcoding, renditions, malware scan)
+    await this.quotaService.invalidateQuotaCache(userId);
+
     await this.workerService
       .dispatchProcessingJob({
         mediaId: saved.id,
@@ -353,8 +369,8 @@ export class MediaService {
         mimeType: saved.mimeType,
         userId,
       })
-      .catch(() => {
-        // In dev or without redis bullmq active, log and proceed gracefully
+      .catch((err: unknown) => {
+        this.logger.warn(`Failed to dispatch background job: ${String(err)}`);
       });
 
     this.sseService.emit({
@@ -365,6 +381,7 @@ export class MediaService {
       timestamp: new Date().toISOString(),
     });
 
+    this.logger.debug(`completeMultipartUpload finished in ${Date.now() - start}ms`);
     return this.mapToType(saved);
   }
 
@@ -372,6 +389,8 @@ export class MediaService {
     userId: string,
     mediaId: string,
   ): Promise<MediaType> {
+    const start = Date.now();
+    this.logger.log(`Verifying direct upload for media ${mediaId}`);
     const media = await this.mediaRepo.findOne({
       where: { id: mediaId, uploadedById: userId },
     });
@@ -403,6 +422,8 @@ export class MediaService {
       saved.sizeBytes,
     );
 
+    await this.quotaService.invalidateQuotaCache(userId);
+
     this.sseService.emit({
       mediaId: saved.id,
       status: MediaStatus.READY,
@@ -411,6 +432,7 @@ export class MediaService {
       timestamp: new Date().toISOString(),
     });
 
+    this.logger.debug(`verifyDirectUpload finished in ${Date.now() - start}ms`);
     return this.mapToType(saved);
   }
 
@@ -489,7 +511,6 @@ export class MediaService {
     return {
       mediaId,
       downloadUrl,
-      url: downloadUrl,
       expiresInSeconds: expiresIn,
       expiresAt: Math.floor(Date.now() / 1000) + expiresIn,
       contentType: media.mimeType,
@@ -548,7 +569,7 @@ export class MediaService {
   async completeUploadByUploadId(
     userId: string,
     input: CompleteUploadInput,
-  ): Promise<{ mediaId: string; status: string }> {
+  ): Promise<{ mediaId: string; status: MediaStatus }> {
     const session = await this.sessionRepo.findOne({
       where: { s3UploadId: input.uploadId, userId },
     });
@@ -590,21 +611,153 @@ export class MediaService {
     return this.mapToType(media);
   }
 
+  async updateMedia(
+    userId: string,
+    input: UpdateMediaInput,
+  ): Promise<MediaType> {
+    const media = await this.mediaRepo.findOne({
+      where: { id: input.mediaId, uploadedById: userId },
+    });
+
+    if (!media) {
+      throw new NotFoundException(`Media not found with ID ${input.mediaId}`);
+    }
+
+    if (input.fileName !== undefined) {
+      media.fileName = input.fileName;
+    }
+    if (input.isPublic !== undefined) {
+      media.isPublic = input.isPublic;
+    }
+    if (input.tags !== undefined) {
+      media.tags = input.tags;
+    }
+
+    const saved = await this.mediaRepo.save(media);
+    return this.mapToType(saved);
+  }
+
+  async listVersions(mediaId: string, userId: string): Promise<MediaVersionType[]> {
+    const media = await this.mediaRepo.findOne({ where: { id: mediaId } });
+    if (!media) {
+      throw new NotFoundException(`Media not found with ID ${mediaId}`);
+    }
+    if (!media.isPublic && media.uploadedById !== userId) {
+      throw new NotFoundException(`Media not found or unauthorized`);
+    }
+
+    const versions = await this.versionRepo.find({
+      where: { mediaId },
+      order: { createdAt: 'ASC' },
+    });
+
+    return versions.map((v) => ({
+      id: v.id,
+      mediaId: v.mediaId,
+      versionType: v.versionType,
+      storageKey: v.storageKey,
+      mimeType: v.mimeType,
+      sizeBytes: v.sizeBytes,
+      width: v.width,
+      height: v.height,
+      durationSeconds: v.durationSeconds,
+    }));
+  }
+
+  async listJobs(mediaId: string, userId: string): Promise<MediaJobObjectType[]> {
+    const media = await this.mediaRepo.findOne({
+      where: { id: mediaId, uploadedById: userId },
+    });
+    if (!media) {
+      throw new NotFoundException(`Media not found with ID ${mediaId}`);
+    }
+
+    const jobs = await this.jobRepo.find({
+      where: { mediaId },
+      order: { createdAt: 'DESC' },
+    });
+
+    return jobs.map((j) => ({
+      id: j.id,
+      mediaId: j.mediaId,
+      jobType: j.jobType,
+      status: j.status,
+      attempts: j.attempts,
+      maxAttempts: j.maxAttempts,
+      lastError: j.lastError,
+      startedAt: j.startedAt?.toISOString() ?? null,
+      completedAt: j.completedAt?.toISOString() ?? null,
+      createdAt: j.createdAt.toISOString(),
+    }));
+  }
+
   async paginate(
     userId: string,
     page: number = 1,
     limit: number = 10,
+    filter?: MediaListFilterInput,
   ): Promise<PaginatedMediaData> {
     const safePage = Math.max(1, page);
     const safeLimit = Math.min(100, Math.max(1, limit));
     const skip = (safePage - 1) * safeLimit;
 
-    const [items, total] = await this.mediaRepo.findAndCount({
-      where: { uploadedById: userId },
-      order: { createdAt: 'DESC' },
-      skip,
-      take: safeLimit,
-    });
+    const query = this.mediaRepo
+      .createQueryBuilder('media')
+      .where('media.uploaded_by_id = :userId', { userId });
+
+    if (filter?.mediaType) {
+      query.andWhere('media.media_type = :mediaType', { mediaType: filter.mediaType });
+    }
+    if (filter?.status) {
+      query.andWhere('media.status = :status', { status: filter.status });
+    }
+    if (filter?.fromDate) {
+      query.andWhere('media.created_at >= :fromDate', { fromDate: filter.fromDate });
+    }
+    if (filter?.toDate) {
+      query.andWhere('media.created_at <= :toDate', { toDate: filter.toDate });
+    }
+
+    query.orderBy('media.created_at', 'DESC').skip(skip).take(safeLimit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items: items.map((m) => this.mapToType(m)),
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit) || 1,
+    };
+  }
+
+  async adminListMedia(
+    page: number = 1,
+    limit: number = 10,
+    filter?: MediaListFilterInput,
+  ): Promise<PaginatedMediaData> {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(100, Math.max(1, limit));
+    const skip = (safePage - 1) * safeLimit;
+
+    const query = this.mediaRepo.createQueryBuilder('media');
+
+    if (filter?.mediaType) {
+      query.andWhere('media.media_type = :mediaType', { mediaType: filter.mediaType });
+    }
+    if (filter?.status) {
+      query.andWhere('media.status = :status', { status: filter.status });
+    }
+    if (filter?.fromDate) {
+      query.andWhere('media.created_at >= :fromDate', { fromDate: filter.fromDate });
+    }
+    if (filter?.toDate) {
+      query.andWhere('media.created_at <= :toDate', { toDate: filter.toDate });
+    }
+
+    query.orderBy('media.created_at', 'DESC').skip(skip).take(safeLimit);
+
+    const [items, total] = await query.getManyAndCount();
 
     return {
       items: items.map((m) => this.mapToType(m)),
@@ -636,9 +789,8 @@ export class MediaService {
     }
 
     await this.storage.deleteObject(media.storageBucket, media.storageKey);
-    this.transitionState(media, MediaStatus.DELETED);
-    await this.mediaRepo.save(media);
     await this.mediaRepo.softDelete(media.id);
+    await this.quotaService.invalidateQuotaCache(userId);
   }
 
   private transitionState(media: Media, next: MediaStatus): void {
@@ -668,22 +820,16 @@ export class MediaService {
   }
 
   private resolveCategory(mime: string): MediaTypeCategory {
-    if (mime.startsWith('image/')) return MediaTypeCategory.IMAGE;
-    if (mime.startsWith('video/')) return MediaTypeCategory.VIDEO;
-    if (mime.startsWith('audio/')) return MediaTypeCategory.AUDIO;
-    if (
-      mime.includes('pdf') ||
-      mime.includes('document') ||
-      mime.includes('text')
-    ) {
-      return MediaTypeCategory.DOCUMENT;
+    const lower = mime.toLowerCase();
+    for (const rule of MIME_TO_CATEGORY_MAP) {
+      if (lower.startsWith(rule.prefix)) {
+        return rule.category;
+      }
     }
-    if (
-      mime.includes('zip') ||
-      mime.includes('tar') ||
-      mime.includes('archive')
-    ) {
-      return MediaTypeCategory.ARCHIVE;
+    for (const rule of MIME_KEYWORD_MAP) {
+      if (lower.includes(rule.keyword)) {
+        return rule.category;
+      }
     }
     return MediaTypeCategory.OTHER;
   }
@@ -698,9 +844,10 @@ export class MediaService {
       mediaType: entity.mediaType,
       sizeBytes: entity.sizeBytes,
       status: entity.status,
-      uploadedById: entity.uploadedById,
+      uploadedById: entity.uploadedById || '',
       checksum: entity.checksum,
       isPublic: entity.isPublic,
+      tags: entity.tags || [],
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
     };

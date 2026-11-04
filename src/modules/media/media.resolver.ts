@@ -11,6 +11,8 @@ import {
   QuotaResponse,
   MediaGeneralOperationResponse,
   UploadStatusResponse,
+  MediaVersionResponse,
+  MediaJobResponse,
 } from './dto/media.types.js';
 import {
   RequestUploadInput,
@@ -19,6 +21,8 @@ import {
   AbortMultipartUploadInput,
   CreateUploadSessionInput,
   CompleteUploadInput,
+  UpdateMediaInput,
+  MediaListFilterInput,
 } from './input/media.inputs.js';
 import { Auth } from '../../common/decorator/auth.decorator.js';
 import { Permission } from '../../common/constant/enum.constant.js';
@@ -54,7 +58,10 @@ export class MediaResolver {
     @CurrentUser() user: IAuthenticatedUser,
     @Args('input') input: InitiateMultipartUploadInput,
   ): Promise<PresignedUploadResponse> {
-    const data = await this.mediaService.initiateMultipartUpload(user.id, input);
+    const data = await this.mediaService.initiateMultipartUpload(
+      user.id,
+      input,
+    );
     return {
       success: true,
       statusCode: 200,
@@ -70,7 +77,10 @@ export class MediaResolver {
     @CurrentUser() user: IAuthenticatedUser,
     @Args('input') input: CompleteMultipartUploadInput,
   ): Promise<MediaResponse> {
-    const media = await this.mediaService.completeMultipartUpload(user.id, input);
+    const media = await this.mediaService.completeMultipartUpload(
+      user.id,
+      input,
+    );
     return {
       success: true,
       statusCode: 200,
@@ -113,27 +123,13 @@ export class MediaResolver {
 
   @Query(() => DownloadUrlResponse)
   @Auth([Permission.MEDIA_VIEW])
-  async getMediaDownloadUrl(
-    @CurrentUser() user: IAuthenticatedUser,
-    @Args('mediaId') mediaId: string,
-  ): Promise<DownloadUrlResponse> {
-    const download = await this.mediaService.getDownloadUrl(user.id, mediaId);
-    return {
-      success: true,
-      statusCode: 200,
-      message: await this.i18n.t(MEDIA_I18N.DOWNLOAD_URL_GENERATED),
-      timeStamp: new Date().toISOString(),
-      data: download,
-    };
-  }
-
-  @Query(() => DownloadUrlResponse)
-  @Auth([Permission.MEDIA_VIEW])
   async downloadUrl(
     @CurrentUser() user: IAuthenticatedUser,
     @Args('mediaId') mediaId: string,
-    @Args('versionType', { type: () => String, nullable: true }) versionType?: string,
-    @Args('expirySeconds', { type: () => Int, nullable: true }) expirySeconds?: number,
+    @Args('versionType', { type: () => String, nullable: true })
+    versionType?: string,
+    @Args('expirySeconds', { type: () => Int, nullable: true })
+    expirySeconds?: number,
   ): Promise<DownloadUrlResponse> {
     const download = await this.mediaService.getDownloadUrl(
       user.id,
@@ -172,7 +168,10 @@ export class MediaResolver {
     @CurrentUser() user: IAuthenticatedUser,
     @Args('input') input: CompleteUploadInput,
   ): Promise<MediaResponse> {
-    const res = await this.mediaService.completeUploadByUploadId(user.id, input);
+    const res = await this.mediaService.completeUploadByUploadId(
+      user.id,
+      input,
+    );
     const media = await this.mediaService.findById(res.mediaId);
     return {
       success: true,
@@ -208,7 +207,7 @@ export class MediaResolver {
     return {
       success: true,
       statusCode: 200,
-      message: 'Upload status retrieved successfully',
+      message: await this.i18n.t(MEDIA_I18N.UPLOAD_STATUS_RETRIEVED),
       timeStamp: new Date().toISOString(),
       data,
     };
@@ -216,9 +215,7 @@ export class MediaResolver {
 
   @Query(() => MediaResponse)
   @Auth([Permission.MEDIA_VIEW])
-  async getMediaById(
-    @Args('mediaId') mediaId: string,
-  ): Promise<MediaResponse> {
+  async getMediaById(@Args('mediaId') mediaId: string): Promise<MediaResponse> {
     const media = await this.mediaService.findById(mediaId);
     return {
       success: true,
@@ -229,18 +226,90 @@ export class MediaResolver {
     };
   }
 
+  @Mutation(() => MediaResponse)
+  @Auth([Permission.MEDIA_UPLOAD])
+  async updateMedia(
+    @CurrentUser() user: IAuthenticatedUser,
+    @Args('input') input: UpdateMediaInput,
+  ): Promise<MediaResponse> {
+    const media = await this.mediaService.updateMedia(user.id, input);
+    return {
+      success: true,
+      statusCode: 200,
+      message: await this.i18n.t(MEDIA_I18N.MEDIA_UPDATED),
+      timeStamp: new Date().toISOString(),
+      data: media,
+    };
+  }
+
+  @Query(() => MediaVersionResponse)
+  @Auth([Permission.MEDIA_VIEW])
+  async listMediaVersions(
+    @CurrentUser() user: IAuthenticatedUser,
+    @Args('mediaId') mediaId: string,
+  ): Promise<MediaVersionResponse> {
+    const versions = await this.mediaService.listVersions(mediaId, user.id);
+    return {
+      success: true,
+      statusCode: 200,
+      message: await this.i18n.t(MEDIA_I18N.VERSIONS_FOUND),
+      timeStamp: new Date().toISOString(),
+      data: versions,
+    };
+  }
+
+  @Query(() => MediaJobResponse)
+  @Auth([Permission.MEDIA_VIEW])
+  async getMediaJobs(
+    @CurrentUser() user: IAuthenticatedUser,
+    @Args('mediaId') mediaId: string,
+  ): Promise<MediaJobResponse> {
+    const jobs = await this.mediaService.listJobs(mediaId, user.id);
+    return {
+      success: true,
+      statusCode: 200,
+      message: await this.i18n.t(MEDIA_I18N.JOBS_FOUND),
+      timeStamp: new Date().toISOString(),
+      data: jobs,
+    };
+  }
+
   @Query(() => PaginatedMediaResponse)
   @Auth([Permission.MEDIA_VIEW])
   async getMyMedia(
     @CurrentUser() user: IAuthenticatedUser,
-    @Args('page', { type: () => Int, nullable: true, defaultValue: 1 }) page: number,
-    @Args('limit', { type: () => Int, nullable: true, defaultValue: 10 }) limit: number,
+    @Args('page', { type: () => Int, nullable: true, defaultValue: 1 })
+    page: number,
+    @Args('limit', { type: () => Int, nullable: true, defaultValue: 10 })
+    limit: number,
+    @Args('filter', { type: () => MediaListFilterInput, nullable: true })
+    filter?: MediaListFilterInput,
   ): Promise<PaginatedMediaResponse> {
-    const data = await this.mediaService.paginate(user.id, page, limit);
+    const data = await this.mediaService.paginate(user.id, page, limit, filter);
     return {
       success: true,
       statusCode: 200,
-      message: await this.i18n.t(MEDIA_I18N.MEDIA_FOUND),
+      message: await this.i18n.t(MEDIA_I18N.MEDIA_LIST_FOUND),
+      timeStamp: new Date().toISOString(),
+      data,
+    };
+  }
+
+  @Query(() => PaginatedMediaResponse)
+  @Auth([Permission.EDIT_USER_ROLE])
+  async adminListAllMedia(
+    @Args('page', { type: () => Int, nullable: true, defaultValue: 1 })
+    page: number,
+    @Args('limit', { type: () => Int, nullable: true, defaultValue: 10 })
+    limit: number,
+    @Args('filter', { type: () => MediaListFilterInput, nullable: true })
+    filter?: MediaListFilterInput,
+  ): Promise<PaginatedMediaResponse> {
+    const data = await this.mediaService.adminListMedia(page, limit, filter);
+    return {
+      success: true,
+      statusCode: 200,
+      message: await this.i18n.t(MEDIA_I18N.MEDIA_LIST_FOUND),
       timeStamp: new Date().toISOString(),
       data,
     };
@@ -255,7 +324,7 @@ export class MediaResolver {
     return {
       success: true,
       statusCode: 200,
-      message: 'Quota retrieved successfully',
+      message: await this.i18n.t(MEDIA_I18N.QUOTA_RETRIEVED),
       timeStamp: new Date().toISOString(),
       data,
     };
