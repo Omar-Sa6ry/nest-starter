@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PaymentProvider } from '../enums/payment-provider.enum.js';
-import { IPaymentStrategy } from '../interfaces/payment-strategy.interface.js';
+import { IPaymentStrategy } from '../interfaces/IPayment-strategy.interface.js';
 import { StripeStrategy } from './stripe.strategy.js';
 import { FawryStrategy } from './fawry.strategy.js';
 import { PaymobStrategy } from './paymob.strategy.js';
@@ -38,3 +38,4 @@ export class PaymentStrategyFactory {
     return Array.from(this.strategies.keys());
   }
 }
+

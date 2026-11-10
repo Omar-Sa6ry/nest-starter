@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentProvider } from '../enums/payment-provider.enum.js';
 import { PaymentStatus } from '../enums/payment-status.enum.js';
-import { IPaymentStrategy, ISubscriptionPaymentCapability } from '../interfaces/payment-strategy.interface.js';
+import { IPaymentStrategy, ISubscriptionPaymentCapability } from '../interfaces/IPayment-strategy.interface.js';
 import {
   InitiatePaymentParams,
   InitiatePaymentResult,
@@ -10,7 +10,7 @@ import {
   RefundPaymentParams,
   RefundPaymentResult,
   WebhookVerificationResult,
-} from '../interfaces/payment-result.interface.js';
+} from '../interfaces/IPayment-result.interface.js';
 
 @Injectable()
 export class PaypalStrategy implements IPaymentStrategy, ISubscriptionPaymentCapability {
@@ -204,3 +204,4 @@ export class PaypalStrategy implements IPaymentStrategy, ISubscriptionPaymentCap
     return { subscriptionId: `I-SUB-${customerId}-${planId}`, status: 'ACTIVE' };
   }
 }
+

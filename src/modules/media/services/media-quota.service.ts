@@ -23,7 +23,6 @@ export class MediaQuotaService {
   async getQuotaUsage(userId: string): Promise<IQuotaUsage> {
     const cacheKey = `${this.QUOTA_CACHE_PREFIX}${userId}`;
 
-    // 1. Try reading cached quota from @bts-soft/cache
     const cachedUsed = await this.redisService.get<string>(cacheKey);
     let usedBytes = cachedUsed ? parseInt(cachedUsed, 10) : null;
 

@@ -8,18 +8,11 @@ export interface IFormattedSuccessEnvelope<T = unknown> {
   paginationInfo?: unknown;
 }
 
-/**
- * Error envelope shared by REST and GraphQL errors.
- *
- * Deliberately minimal — the API contract is exactly these four fields:
- *   { success, statusCode, message, timestamp }
- * (the GraphQL variant is produced by `formatGraphQLError`, which flattens
- * `extensions` into the error object and drops locations/path/stacktrace).
- */
 export interface IFormattedErrorEnvelope {
   success: boolean;
   statusCode: number;
   message: string;
+  timeStamp: string;
   timestamp: string;
 }
 

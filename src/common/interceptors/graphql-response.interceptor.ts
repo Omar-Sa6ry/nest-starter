@@ -11,7 +11,7 @@ import { I18nService } from 'nestjs-i18n';
 import { ResponseFormatter } from './response-formatter.js';
 import { COMMON_I18N } from '../constant/common-i18n.constants.js';
 
-interface GraphQLFormattedPayload {
+interface IGraphQLFormattedPayload {
   statusCode?: number;
   success?: boolean;
 }
@@ -29,7 +29,7 @@ export class GraphQLResponseInterceptor implements NestInterceptor {
       map((data: unknown) => {
         if (!isGraphQL) return data;
 
-        const candidate = data as GraphQLFormattedPayload | undefined;
+        const candidate = data as IGraphQLFormattedPayload | undefined;
         if (
           candidate &&
           candidate.statusCode !== undefined &&

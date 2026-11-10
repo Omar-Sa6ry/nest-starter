@@ -9,8 +9,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const isProduction = configService.get<string>('NODE_ENV') === 'production';
-
         return {
           type: 'postgres',
           host: configService.get<string>('DB_HOST', 'localhost'),
@@ -28,9 +26,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           entities: [
             join(process.cwd(), 'dist/modules/**/{entity,entities}/*.entity.js'),
           ],
+          migrations: [
+            join(process.cwd(), 'dist/migrations/*.js'),
+          ],
+          migrationsTableName: 'typeorm_migrations',
+          migrationsRun: configService.get<string>('TYPEORM_MIGRATIONS_RUN') === 'true',
           
           logging: configService.get<string>('NODE_ENV') === 'development' ? ['error', 'warn'] : ['error'],
-          synchronize: !isProduction,
+          synchronize:
+            configService.get<string>('NODE_ENV') === 'development' ||
+            configService.get<string>('NODE_ENV') === 'test',
           retryAttempts: 10,
           retryDelay: 3000,
         };
@@ -38,4 +43,5 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     }),
   ],
 })
+
 export class DatabaseModule {}

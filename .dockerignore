@@ -3,6 +3,12 @@ node_modules
 .npm
 .yarn
 .pnpm-store
+pnpm-lock.yaml
+yarn.lock
+*.tgz
+.npmrc
+Makefile
+Taskfile.yml
 
 # Build & Runtime Output
 dist

@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   ManyToOne,
   JoinColumn,
@@ -14,6 +15,9 @@ import { ChannelType, NotificationStatus, IdGenerator } from '@bts-soft/core';
 import type { User } from '../../user/entity/user.entity.js';
 
 @Entity('notification_logs')
+@Index(['channel', 'status'])
+@Index(['userId', 'status'])
+@Index(['recipientId', 'channel', 'status'])
 export class NotificationLogEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id: string = IdGenerator.generate();
@@ -29,9 +33,13 @@ export class NotificationLogEntity {
   @Index()
   jobId: string;
 
-  @Column({ type: 'varchar', length: 64 })
+  @Column({
+    type: 'enum',
+    enum: ChannelType,
+    default: ChannelType.IN_APP,
+  })
   @Index()
-  channel: ChannelType | string;
+  channel: ChannelType;
 
   @Column({ name: 'recipient_id', type: 'varchar', length: 255 })
   @Index()
@@ -45,7 +53,7 @@ export class NotificationLogEntity {
   @JoinColumn({ name: 'user_id' })
   user?: Relation<User>;
 
-  @Column({ type: 'varchar', length: 32, default: NotificationStatus.PENDING })
+  @Column({ type: 'enum', enum: NotificationStatus, default: NotificationStatus.PENDING })
   @Index()
   status: NotificationStatus;
 
@@ -75,4 +83,7 @@ export class NotificationLogEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt?: Date | null;
 }

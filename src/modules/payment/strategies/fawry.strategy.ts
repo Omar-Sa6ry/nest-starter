@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { PaymentProvider } from '../enums/payment-provider.enum.js';
 import { PaymentStatus } from '../enums/payment-status.enum.js';
-import { IPaymentStrategy } from '../interfaces/payment-strategy.interface.js';
+import { IPaymentStrategy } from '../interfaces/IPayment-strategy.interface.js';
 import {
   InitiatePaymentParams,
   InitiatePaymentResult,
@@ -11,7 +11,7 @@ import {
   RefundPaymentParams,
   RefundPaymentResult,
   WebhookVerificationResult,
-} from '../interfaces/payment-result.interface.js';
+} from '../interfaces/IPayment-result.interface.js';
 
 @Injectable()
 export class FawryStrategy implements IPaymentStrategy {
@@ -206,3 +206,4 @@ export class FawryStrategy implements IPaymentStrategy {
     };
   }
 }
+

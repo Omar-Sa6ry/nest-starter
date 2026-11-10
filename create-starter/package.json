@@ -1,6 +1,6 @@
 {
   "name": "@bts-soft/create-starter",
-  "version": "1.6.2",
+  "version": "1.8.2",
   "description": "Production-ready NestJS 12 starter CLI template generator: provisions GraphQL (Apollo code-first), TypeORM + PostgreSQL, Redis, JWT auth with refresh rotation, RBAC, OAuth2, rate limiting, S3/MinIO media upload, BullMQ workers, WebSocket gateways, and multi-environment Docker stacks.",
   "author": "Omar Ahmed Sabry",
   "license": "Apache-2.0",
@@ -42,7 +42,11 @@
     "minio",
     "media",
     "bullmq",
-    "socket-io"
+    "socket-io",
+    "websockets",
+    "notification",
+    "payment",
+    "outbox"
   ],
   "type": "module",
   "bin": {

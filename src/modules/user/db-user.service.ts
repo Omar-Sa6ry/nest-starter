@@ -61,11 +61,18 @@ export class DbUserService {
     if (items.length === 0)
       throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUNDS));
 
-    const hasNext = page * limit < totalItems;
+    const totalPages = Math.ceil(totalItems / limit);
+    const hasNext = page < totalPages;
+    const hasPrevious = page > 1;
     return {
       items,
       totalItems,
       currentPage: page,
+      totalPages,
+      limit,
+      hasNextPage: hasNext,
+      hasPreviousPage: hasPrevious,
+      previousPage: hasPrevious ? page - 1 : undefined,
       nextPage: hasNext ? page + 1 : undefined,
     };
   }
@@ -95,7 +102,10 @@ export class DbUserService {
         }
         throw new BadRequestException('Avatar media not found');
       }
-      const download = await this.mediaService.getDownloadUrl(userId, avatarMediaId);
+      const download = await this.mediaService.getDownloadUrl(
+        userId,
+        avatarMediaId,
+      );
       user.imageUrl = download.downloadUrl;
     }
 
@@ -129,16 +139,13 @@ export class DbUserService {
     return this.userRepo.save(user);
   }
 
-  async updateUserRole(id: string, role: string): Promise<User> {
+  async updateUserRole(id: string, role: Role): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUND));
     }
 
-    const normalizedRole = role.toLowerCase() as Role;
-    user.role = Object.values(Role).includes(normalizedRole)
-      ? normalizedRole
-      : (role as Role);
+    user.role = role;
     return this.userRepo.save(user);
   }
 
@@ -158,7 +165,7 @@ export class DbUserService {
       throw new NotFoundException(this.i18n.t(USER_I18N.NOT_FOUND));
     }
 
-    const result = await this.userRepo.delete(id);
+    const result = await this.userRepo.softDelete(id);
     return (result.affected ?? 0) > 0;
   }
 

@@ -18,7 +18,7 @@ import { PaymentStatus } from './enums/payment-status.enum.js';
 import { PaymentProvider } from './enums/payment-provider.enum.js';
 import { MetricsService } from '../../common/metrics/metrics.service.js';
 import { PAYMENT_METRICS_LABELS } from './constants/payment.constants.js';
-import { PaginatedResult } from '../auth/interfaces/IPaginationResult.interface.js';
+import type { IPaginatedResult } from '../../common/interfaces/IPaginatedResult.interface.js';
 import {
   PaymentCompletedEvent,
   PaymentFailedEvent,
@@ -297,7 +297,7 @@ export class PaymentService {
     page: number = 1,
     limit: number = 10,
     userId?: string,
-  ): Promise<PaginatedResult<PaymentTransaction>> {
+  ): Promise<IPaginatedResult<PaymentTransaction>> {
     const skip = (page - 1) * limit;
     const query = this.transactionRepository.createQueryBuilder('tx');
 

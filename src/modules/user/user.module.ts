@@ -5,6 +5,7 @@ import { UserResolver } from './user.resolver.js';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entity/user.entity.js';
 import { MediaModule } from '../media/media.module.js';
+import { USER_REPOSITORY } from './constants/user-repository.token.js';
 
 @Module({
   imports: [
@@ -16,10 +17,10 @@ import { MediaModule } from '../media/media.module.js';
     UserService,
     UserResolver,
     {
-      provide: 'USER_REPOSITORY',
+      provide: USER_REPOSITORY,
       useExisting: getRepositoryToken(User),
     },
   ],
-  exports: [UserService, TypeOrmModule, 'USER_REPOSITORY'],
+  exports: [UserService, TypeOrmModule, USER_REPOSITORY],
 })
 export class UserModule {}

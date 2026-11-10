@@ -1,20 +1,12 @@
-import { Injectable, Optional, Inject } from '@nestjs/common';
+import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
+import { RedisService } from '@bts-soft/core';
+import { Role } from '../../common/constant/enum.constant.js';
 import { UpdateProfileInput, ChangePasswordInput } from './dto/user.types.js';
 import { DbUserService } from './db-user.service.js';
 import { User } from './entity/user.entity.js';
 import { IPaginatedResult } from '../../common/interfaces/IPaginatedResult.interface.js';
 import { IUserStats } from './interfaces/IUserStats.interface.js';
-
-/**
- * Contract of the cache store provided by `@bts-soft/cache` under the
- * `CACHE_MANAGER` token (Redis-backed, JSON serialisation included).
- */
-interface ICacheStore {
-  get(key: string): Promise<unknown>;
-  set(key: string, value: unknown, ttlSeconds?: number): Promise<unknown>;
-  del(key: string): Promise<unknown>;
-}
 
 @Injectable()
 export class UserService {
@@ -22,7 +14,7 @@ export class UserService {
 
   constructor(
     private readonly dbUserService: DbUserService,
-    @Optional() @Inject('CACHE_MANAGER') private cacheManager?: ICacheStore,
+    @Optional() private readonly redisService?: RedisService,
   ) {
     this.logger = new Logger(UserService.name);
   }
@@ -32,10 +24,16 @@ export class UserService {
   }
 
   async getCached(id: string): Promise<User | null> {
-    if (!this.cacheManager) return null;
+    if (!this.redisService) return null;
     try {
-      const cached = await this.cacheManager.get(this.getCacheKey(id));
-      if (cached) return cached as User;
+      const cached = await this.redisService.get(this.getCacheKey(id));
+      if (cached) {
+        const user = cached as User;
+        if (user.createdAt) user.createdAt = new Date(user.createdAt);
+        if (user.updatedAt) user.updatedAt = new Date(user.updatedAt);
+        if (user.deletedAt) user.deletedAt = new Date(user.deletedAt);
+        return user;
+      }
     } catch {
       // fallback to DB
     }
@@ -43,9 +41,9 @@ export class UserService {
   }
 
   async setCache(id: string, entity: User): Promise<void> {
-    if (!this.cacheManager) return;
+    if (!this.redisService) return;
     try {
-      await this.cacheManager.set(
+      await this.redisService.set(
         this.getCacheKey(id),
         entity,
         this.cacheTtlSeconds,
@@ -56,9 +54,9 @@ export class UserService {
   }
 
   async invalidateCache(id: string): Promise<void> {
-    if (!this.cacheManager) return;
+    if (!this.redisService) return;
     try {
-      await this.cacheManager.del(this.getCacheKey(id));
+      await this.redisService.del(this.getCacheKey(id));
     } catch {
       // fallback to DB
     }
@@ -119,13 +117,20 @@ export class UserService {
     this.logger.log(`User promoted to admin: ${id}`, 'UserService');
   }
 
-  async updateUserRole(id: string, role: string): Promise<void> {
+  async updateUserRole(id: string, role: Role): Promise<void> {
     const updatedUser = await this.dbUserService.updateUserRole(id, role);
     await this.setCache(id, updatedUser);
     this.logger.log(`Role updated for user ${id}: ${role}`, 'UserService');
   }
 
   async toggleUserActive(id: string, isActive: boolean): Promise<void> {
+    const user = await this.findById(id);
+    if (!user || user.role === Role.ADMIN) {
+      throw new UnauthorizedException(
+        `You are not allowed to ${isActive ? 'activate' : 'deactivate'} this user`,
+      );
+    }
+
     const updatedUser = await this.dbUserService.toggleUserActive(id, isActive);
     await this.setCache(id, updatedUser);
     this.logger.log(

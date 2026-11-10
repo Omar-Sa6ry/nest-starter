@@ -76,10 +76,8 @@ export class MediaService {
   ): Promise<PresignedUploadResponseData> {
     const start = Date.now();
     this.logger.log(`Requesting upload for user ${userId}, file: ${input.fileName}`);
-    // 1. Quota & Limits
     await this.quotaService.checkCanUpload(userId, input.sizeBytes);
 
-    // 2. MIME & Extension validation
     if (
       !this.validationService.validateDeclaredType(
         input.fileName,

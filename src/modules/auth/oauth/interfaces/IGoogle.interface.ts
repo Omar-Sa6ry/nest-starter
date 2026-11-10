@@ -1,4 +1,4 @@
-export interface GoogleUserData {
+export interface IGoogleUserData {
   googleId: string;
   email: string;
   phone?: string;
@@ -6,3 +6,4 @@ export interface GoogleUserData {
   lastName: string;
   imageUrl?: string;
 }
+

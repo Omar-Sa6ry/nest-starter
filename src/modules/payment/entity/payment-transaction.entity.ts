@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   ManyToOne,
   JoinColumn,
@@ -17,6 +18,7 @@ import { PaymentCurrency } from '../enums/payment-currency.enum.js';
 import type { User } from '../../user/entity/user.entity.js';
 
 @Entity('payment_transactions')
+@Index(['userId', 'status', 'createdAt'])
 export class PaymentTransaction {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id: string = IdGenerator.generate();
@@ -29,8 +31,8 @@ export class PaymentTransaction {
   }
 
   @Index()
-  @Column({ name: 'user_id', type: 'varchar', length: 36 })
-  userId: string;
+  @Column({ name: 'user_id', type: 'varchar', length: 36, nullable: true })
+  userId?: string | null;
 
   @ManyToOne('User', 'paymentTransactions', {
     onDelete: 'SET NULL',
@@ -106,4 +108,19 @@ export class PaymentTransaction {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt?: Date | null;
+
+  @Column({ name: 'refunded_at', type: 'timestamp', nullable: true })
+  refundedAt?: Date | null;
+
+  @Column({
+    name: 'refund_amount',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  })
+  refundAmount?: number | null;
 }

@@ -3,7 +3,7 @@ import type { Repository } from 'typeorm';
 import { OAuthService } from './oauth.service.js';
 import { Role } from '../../../common/constant/enum.constant.js';
 import { UserFactory } from '../factory/user.factory.js';
-import { GoogleUserData } from './interfaces/google.interface.js';
+import { IGoogleUserData } from './interfaces/IGoogle.interface.js';
 import { User } from '../../user/entity/user.entity.js';
 
 interface MockUserRepository {
@@ -17,7 +17,7 @@ describe('OAuthService', () => {
   let mockUserRepo: Mocked<MockUserRepository>;
   let userFactory: UserFactory;
 
-  const mockGoogleUserData: GoogleUserData = {
+  const mockGoogleUserData: IGoogleUserData = {
     googleId: 'google-123',
     email: 'test@example.com',
     firstName: 'Test',

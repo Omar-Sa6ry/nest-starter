@@ -5,22 +5,12 @@ import type { Response } from 'express';
 import { ResponseFormatter } from '../interceptors/response-formatter.js';
 import type { IFormattedErrorEnvelope } from '../interfaces/IResponse-formatter.interface.js';
 
-/**
- * `extensions` of an incoming exception. Only `code` and `statusCode` are
- * strongly typed because those are the two keys this filter reads or writes;
- * everything else is carried through untouched.
- */
 interface IExceptionExtensions {
   code?: string;
   statusCode?: number;
   [key: string]: unknown;
 }
 
-/**
- * Structural shape of a non-`HttpException` exception. Declaring the contract
- * explicitly lets the filter stay 100% `any`-free while still coping with
- * Apollo `GraphQLError`, class-validator payloads and ad-hoc plain objects.
- */
 interface IExceptionLike {
   status?: number;
   statusCode?: number;
@@ -30,32 +20,12 @@ interface IExceptionLike {
   getResponse?: () => unknown;
 }
 
-/**
- * Reads `message` off an unknown payload (`getResponse()`, `err.response`, …)
- * and returns `undefined` unless it really is a string — the caller then falls
- * back to the exception's own message.
- */
 function readMessage(payload: unknown): string | undefined {
   if (payload === null || typeof payload !== 'object') return undefined;
   const { message } = payload as { message?: unknown };
   return typeof message === 'string' ? message : undefined;
 }
 
-/**
- * Global exception filter (`APP_FILTER`).
- *
- * - GraphQL context  -> `GraphQLError` carrying `extensions.statusCode` and
- *   `extensions.timestamp`; Apollo's `formatError`
- *   (`common/graphql/graphql-error.formatter.ts`) then flattens the error to
- *   `{ message, success, statusCode, timestamp }` — no `locations`, `path`,
- *   `extensions` or `stacktrace` reach the client.
- * - HTTP context     -> the same four fields as a JSON body plus the proper
- *   status code (no GraphQL error object).
- *
- * The HTTP branch is required because this filter is registered globally: without
- * it, a plain REST 404 ("Cannot GET /api/health") would be logged as a GraphQL
- * exception with a full stack trace and answered with a GraphQLError payload.
- */
 @Catch()
 export class GraphQLExceptionFilter implements GqlExceptionFilter {
   private readonly logger = new Logger(GraphQLExceptionFilter.name);
@@ -95,7 +65,11 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     });
 
     if (isHttp) {
-      this.logHttpException(exception, formattedError.statusCode, formattedError.message);
+      this.logHttpException(
+        exception,
+        formattedError.statusCode,
+        formattedError.message,
+      );
       this.sendHttpError(host, formattedError);
       return undefined;
     }
@@ -113,7 +87,9 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         timestamp: formattedError.timestamp,
         code:
           extensions?.code ||
-          (formattedError.statusCode === 400 ? 'BAD_REQUEST' : 'INTERNAL_SERVER_ERROR'),
+          (formattedError.statusCode === 400
+            ? 'BAD_REQUEST'
+            : 'INTERNAL_SERVER_ERROR'),
       },
     });
   }
@@ -123,7 +99,6 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     return err?.extensions?.statusCode || err?.status || err?.statusCode || 500;
   }
 
-  /** Keeps the original GraphQL logging contract (message + stack / JSON blob). */
   private logGraphqlException(exception: unknown): void {
     if (exception instanceof Error) {
       this.logger.error(
@@ -135,10 +110,6 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     }
   }
 
-  /**
-   * HTTP logging: client errors (4xx — including routine route 404s) are a
-   * single WARN line without a stack trace, only server errors (5xx) are ERROR.
-   */
   private logHttpException(
     exception: unknown,
     statusCode: number,
@@ -154,8 +125,10 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     this.logger.warn(`HTTP ${statusCode}: ${message}`);
   }
 
-  /** Sends exactly the API error contract: { success, statusCode, message, timestamp }. */
-  private sendHttpError(host: ArgumentsHost, formatted: IFormattedErrorEnvelope): void {
+  private sendHttpError(
+    host: ArgumentsHost,
+    formatted: IFormattedErrorEnvelope,
+  ): void {
     const res = host.switchToHttp().getResponse<Response>();
     if (!res || res.headersSent) return;
 
@@ -163,6 +136,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       success: false,
       statusCode: formatted.statusCode,
       message: formatted.message,
+      timeStamp: formatted.timeStamp,
       timestamp: formatted.timestamp,
     });
   }

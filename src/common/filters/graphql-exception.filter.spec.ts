@@ -206,6 +206,7 @@ it('writes JSON response with status code for HTTP context', () => {
       success: false,
       statusCode: 401,
       message: 'missing token',
+      timeStamp: expect.any(String),
       timestamp: expect.any(String),
     });
   });
@@ -220,6 +221,7 @@ it('writes 500 envelope for plain error in HTTP context', () => {
       success: false,
       statusCode: 500,
       message: 'kaboom',
+      timeStamp: expect.any(String),
       timestamp: expect.any(String),
     });
   });

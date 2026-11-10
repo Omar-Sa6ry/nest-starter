@@ -98,6 +98,7 @@ const envFilePath = isProduction
       }),
       playground: !isProduction,
       introspection: !isProduction,
+      includeStacktraceInErrorResponses: false,
     }),
 
     RedisModule,

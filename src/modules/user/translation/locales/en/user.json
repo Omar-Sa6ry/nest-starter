@@ -13,5 +13,6 @@
   "USER_DELETED": "User deleted successfully",
   "INVALID_IMAGE_URL": "Image URL is invalid",
   "INVALID_CREDENTIALS": "Invalid credentials",
-  "INVALID_PASSWORD": "Invalid current password"
+  "INVALID_PASSWORD": "Invalid current password",
+  "STATS_RETRIEVED": "User statistics retrieved successfully"
 }

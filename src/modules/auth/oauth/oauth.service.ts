@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from '../../user/entity/user.entity.js';
 import { Role } from '../../../common/constant/enum.constant.js';
-import { GoogleUserData } from './interfaces/google.interface.js';
+import { IGoogleUserData } from './interfaces/IGoogle.interface.js';
 import { UserFactory } from '../factory/user.factory.js';
 
 @Injectable()
@@ -13,11 +13,11 @@ export class OAuthService {
     private readonly userFactory: UserFactory,
   ) {}
 
-  async validateUser(userData: GoogleUserData): Promise<User> {
+  async validateUser(userData: IGoogleUserData): Promise<User> {
     const email = userData.email?.trim().toLowerCase();
     const phone = userData.phone?.trim();
 
-    // 1. Try finding by googleId first, or by email, or by phone if provided
+    // Try finding by googleId first, or by email, or by phone if provided
     const searchConditions: Record<string, string>[] = [{ googleId: userData.googleId }];
     if (email) searchConditions.push({ email });
     if (phone) searchConditions.push({ phoneNumber: phone });
@@ -46,7 +46,7 @@ export class OAuthService {
       return user;
     }
 
-    // 2. If user doesn't exist, create a new one
+    // If user doesn't exist, create a new one
     const userCount = await this.userRepo.count();
     const role = userCount === 0 ? Role.ADMIN : Role.USER;
 

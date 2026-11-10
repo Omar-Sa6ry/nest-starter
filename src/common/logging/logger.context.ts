@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
-export interface LogContext {
+export interface ILogContext {
   traceId?: string;
   userId?: string;
   method?: string;
@@ -8,18 +8,20 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
-export class LoggerContext {
-  private static storage = new AsyncLocalStorage<LogContext>();
+export type LogContext = ILogContext;
 
-  public static run(context: LogContext, callback: () => void) {
+export class LoggerContext {
+  private static storage = new AsyncLocalStorage<ILogContext>();
+
+  public static run(context: ILogContext, callback: () => void) {
     this.storage.run(context, callback);
   }
 
-  public static getStore(): LogContext | undefined {
+  public static getStore(): ILogContext | undefined {
     return this.storage.getStore();
   }
 
-  public static setStore(store: LogContext) {
+  public static setStore(store: ILogContext) {
     const current = this.storage.getStore();
     if (current) {
       Object.assign(current, store);

@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   ManyToOne,
   JoinColumn,
@@ -40,8 +41,8 @@ export class UploadSession {
   media?: Relation<Media>;
 
   @Index()
-  @Column({ name: 'user_id', type: 'varchar', length: 64 })
-  userId!: string;
+  @Column({ name: 'user_id', type: 'varchar', length: 36, nullable: true })
+  userId?: string | null;
 
   @ManyToOne('User', { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'user_id' })
@@ -77,4 +78,7 @@ export class UploadSession {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updatedAt: Date = new Date();
+
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt?: Date | null;
 }

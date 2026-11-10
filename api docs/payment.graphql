@@ -1,13 +1,4 @@
-# ==============================================================================
-# Payment Module - GraphQL & REST Testing Documentation
-# ==============================================================================
-# All GraphQL requests below require Authorization Header:
-# Headers: { "Authorization": "Bearer <YOUR_JWT_ACCESS_TOKEN>" }
-# ==============================================================================
-
-# ------------------------------------------------------------------------------
 # 1. INITIATE PAYMENT (Requires: Permission.PAYMENT_INITIATE)
-# ------------------------------------------------------------------------------
 
 # 1.1 Stripe Payment (Returns checkoutUrl)
 mutation InitiateStripePayment {
@@ -149,9 +140,8 @@ mutation InitiatePaypalPayment {
 }
 
 
-# ------------------------------------------------------------------------------
 # 2. VERIFY PAYMENT (Requires: Permission.PAYMENT_VIEW)
-# ------------------------------------------------------------------------------
+
 # Checks the payment status directly with the external provider gateway
 mutation VerifyPayment {
   verifyPayment(transactionId: "374871411732254720") {
@@ -175,9 +165,7 @@ mutation VerifyPayment {
 }
 
 
-# ------------------------------------------------------------------------------
 # 3. GET PAYMENT TRANSACTION BY ID (Requires: Permission.PAYMENT_VIEW)
-# ------------------------------------------------------------------------------
 query GetPaymentTransaction {
   getPaymentTransaction(id: "374871411732254720") {
     statusCode
@@ -201,9 +189,7 @@ query GetPaymentTransaction {
 }
 
 
-# ------------------------------------------------------------------------------
 # 4. GET PAGINATED PAYMENT TRANSACTIONS (Requires: Permission.PAYMENT_VIEW)
-# ------------------------------------------------------------------------------
 query GetPaymentTransactions {
   getPaymentTransactions(page: 1, limit: 10) {
     statusCode
@@ -238,10 +224,8 @@ query GetPaymentTransactions {
 }
 
 
-# ------------------------------------------------------------------------------
 # 5. REFUND PAYMENT (Requires: Permission.PAYMENT_MANAGE => Role.ADMIN)
 # Note: The transaction status must be COMPLETED before it can be refunded.
-# ------------------------------------------------------------------------------
 mutation RefundPayment {
   refundPayment(
     input: {
@@ -266,9 +250,7 @@ mutation RefundPayment {
 }
 
 
-# ==============================================================================
 # 6. REST WEBHOOK ENDPOINTS (Simulate via Terminal / PowerShell / cURL)
-# ==============================================================================
 
 # 6.1 Stripe Webhook:
 # Invoke-RestMethod -Uri "http://localhost:3000/api/webhooks/payment/stripe" -Method Post -ContentType "application/json" -Body '{"type":"checkout.session.completed","data":{"object":{"id":"cs_test_mock_123","client_reference_id":"<TRANSACTION_ID>","payment_status":"paid"}}}'

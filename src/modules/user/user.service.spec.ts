@@ -2,13 +2,9 @@ import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { UserService } from './user.service.js';
 import { DbUserService } from './db-user.service.js';
 import { Role } from '../../common/constant/enum.constant.js';
+import type { RedisService } from '@bts-soft/core';
 
-/**
- * Structural mirror of the (module-private) `ICacheStore` interface the
- * `UserService` constructor expects for its `CACHE_MANAGER` injection.
- * Keeps every cache mock fully typed while satisfying the real contract.
- */
-interface CacheStoreMock {
+interface RedisServiceMock {
   get: Mock<(key: string) => Promise<unknown>>;
   set: Mock<(key: string, value: unknown, ttlSeconds?: number) => Promise<unknown>>;
   del: Mock<(key: string) => Promise<unknown>>;
@@ -17,7 +13,7 @@ interface CacheStoreMock {
 describe('UserService', () => {
   let service: UserService;
   let mockDbUserService: DbUserService;
-  let mockCacheManager: CacheStoreMock;
+  let mockCacheManager: RedisServiceMock;
 
   const sampleUser = {
     id: 'user-1',
@@ -55,7 +51,7 @@ describe('UserService', () => {
       del: vi.fn<(key: string) => Promise<unknown>>(),
     };
 
-    service = new UserService(mockDbUserService, mockCacheManager);
+    service = new UserService(mockDbUserService, mockCacheManager as unknown as RedisService);
   });
 
   describe('findById', () => {
@@ -224,11 +220,11 @@ describe('UserService', () => {
       );
       mockCacheManager.set.mockResolvedValue(undefined);
 
-      await service.updateUserRole('user-1', 'admin');
+      await service.updateUserRole('user-1', Role.ADMIN);
 
       expect(mockDbUserService.updateUserRole).toHaveBeenCalledWith(
         'user-1',
-        'admin',
+        Role.ADMIN,
       );
       expect(mockCacheManager.set).toHaveBeenCalled();
     });
@@ -236,6 +232,7 @@ describe('UserService', () => {
 
   describe('toggleUserActive', () => {
     it('delegates and refreshes cache', async () => {
+      vi.mocked(mockDbUserService.findById).mockResolvedValue(sampleUser);
       vi.mocked(mockDbUserService.toggleUserActive).mockResolvedValue(
         sampleUser,
       );

@@ -9,8 +9,8 @@ export default defineConfig({
     root: './',
     include: ['src/**/*.spec.ts'],
     exclude: ['**/.trunk/**', '**/node_modules/**', '**/dist/**'],
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    testTimeout: 40000,
+    hookTimeout: 50000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

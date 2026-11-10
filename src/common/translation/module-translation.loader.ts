@@ -10,10 +10,12 @@ import {
 import { DynamicModule, Module, Global } from '@nestjs/common';
 import { Observable } from 'rxjs';
 
-export interface TranslationModuleOptions {
+export interface ITranslationModuleOptions {
   fallbackLanguage?: string;
   modulesDir?: string;
 }
+
+export type TranslationModuleOptions = ITranslationModuleOptions;
 
 /**
  * Custom loader that directly inspects module directories under `src/modules` (and/or `dist/modules`)

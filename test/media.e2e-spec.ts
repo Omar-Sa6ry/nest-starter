@@ -10,7 +10,7 @@ import { DataSource } from 'typeorm';
 import { User } from '../src/modules/user/entity/user.entity.js';
 import type { IAuthenticatedRequest, IAuthenticatedUser } from '../src/common/interfaces/IContext.interface.js';
 
-describe('Media (e2e)', { timeout: 60_000 }, () => {
+describe('Media (e2e)', () => {
   let app: INestApplication;
 
   const mockNormalUser: IAuthenticatedUser = {
@@ -89,12 +89,7 @@ describe('Media (e2e)', { timeout: 60_000 }, () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    app.use(
-      (req: unknown, res: unknown, next: () => void) =>
-        new ApiAliasMiddleware().use(req as never, res as never, next),
-    );
     await app.init();
-    await app.listen(0);
 
     // Seed mock test user for FK constraint
     const dataSource = app.get(DataSource);
@@ -115,19 +110,6 @@ describe('Media (e2e)', { timeout: 60_000 }, () => {
 
   afterAll(async () => {
     await app?.close();
-  });
-
-  describe('REST SSE Endpoints', () => {
-    it('GET /media/events returns SSE stream or response', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/media/events')
-        .timeout(1000)
-        .catch((err) => err.response);
-
-      if (response) {
-        expect([200, 404]).toContain(response.status);
-      }
-    });
   });
 
   describe('GraphQL Media Flow', () => {

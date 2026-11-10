@@ -65,14 +65,11 @@ export class ResponseFormatter {
       success: false,
       statusCode,
       message,
+      timeStamp: new Date().toISOString(),
       timestamp: new Date().toISOString(),
     };
   }
 
-  /**
-   * Collapses every candidate message (string or array — e.g. class-validator
-   * field errors) into a single line: "name is required, email is invalid".
-   */
   private static joinMessages(
     candidates: Array<unknown>,
     fallbackMessage?: string,
@@ -84,8 +81,6 @@ export class ResponseFormatter {
           ? [String(candidate)]
           : [];
 
-      // Sources are alternatives (errors[] | response.message | message):
-      // the first one that yields text wins, its entries merged into one line.
       if (list.length > 0) return list.join(', ');
     }
 

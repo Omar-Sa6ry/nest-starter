@@ -24,7 +24,7 @@ import { rolePermissionsMap } from '../../../common/constant/rolePermissionsMap.
 import { hashToken } from '../utils/hashToken.util.js';
 import { UserLoggedInEvent } from '../events/domain.events.js';
 import { StructuredLogger } from '../../../common/logging/logger.service.js';
-import type { GoogleUserData } from './interfaces/google.interface.js';
+import type { IGoogleUserData } from './interfaces/IGoogle.interface.js';
 
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600;
 
@@ -57,7 +57,7 @@ export class OAuthController {
       : frontendUrl;
 
     try {
-      const googleUser = req.user as GoogleUserData;
+      const googleUser = req.user as IGoogleUserData;
       const user = await this.oauthService.validateUser(googleUser);
 
       const sessionId = randomUUID();

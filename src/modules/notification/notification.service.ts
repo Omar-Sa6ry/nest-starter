@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException, Optional } from '@nestjs/common';
 import {
   NotificationService as CoreNotificationService,
   DeadLetterQueueService,
@@ -8,6 +8,7 @@ import {
   type NotificationMessage,
   NotificationStatus,
   type NotificationCategory,
+  RedisService,
 } from '@bts-soft/core';
 import { I18nService } from 'nestjs-i18n';
 import { NotificationMessageFactory } from './factory/notification-message.factory.js';
@@ -33,12 +34,55 @@ export class NotificationService {
     private readonly preferenceRepo: IUserPreferenceRepository,
     private readonly messageFactory: NotificationMessageFactory,
     private readonly i18n: I18nService,
+    @Optional() private readonly redisService?: RedisService,
   ) {}
+
+  private getPrefCacheKey(
+    recipientId: string,
+    channel: ChannelType,
+    category?: NotificationCategory,
+  ): string {
+    return `notif:pref:${recipientId}:${channel}:${category || 'default'}`;
+  }
+
+  private async checkOptedOut(
+    recipientId: string,
+    channel: ChannelType,
+    category?: NotificationCategory,
+  ): Promise<boolean> {
+    const key = this.getPrefCacheKey(recipientId, channel, category);
+    if (this.redisService) {
+      try {
+        const cached = await this.redisService.get(key);
+        if (cached !== null && cached !== undefined) {
+          return cached === 'true' || cached === true;
+        }
+      } catch {
+        // Fallback to repository
+      }
+    }
+
+    const isOptedOut = await this.preferenceRepo.isOptedOut(
+      recipientId,
+      channel,
+      category,
+    );
+
+    if (this.redisService) {
+      try {
+        await this.redisService.set(key, String(isOptedOut), 300); // 5 min TTL
+      } catch {
+        // Ignore cache set error
+      }
+    }
+
+    return isOptedOut;
+  }
 
   async sendNotification(
     input: SendNotificationInput,
   ): Promise<NotificationDispatchPayload> {
-    const isOptedOut = await this.preferenceRepo.isOptedOut(
+    const isOptedOut = await this.checkOptedOut(
       input.recipientId,
       input.channel,
       input.category,
@@ -93,6 +137,16 @@ export class NotificationService {
       input.optOut,
       input.category,
     );
+
+    if (this.redisService) {
+      try {
+        await this.redisService.del(
+          this.getPrefCacheKey(input.recipientId, input.channel, input.category),
+        );
+      } catch {
+        // Ignore cache eviction failure
+      }
+    }
 
     return {
       recipientId: input.recipientId,

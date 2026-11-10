@@ -14,6 +14,7 @@ export const USER_I18N = {
   INVALID_IMAGE_URL: 'user.INVALID_IMAGE_URL',
   INVALID_CREDENTIALS: 'user.INVALID_CREDENTIALS',
   INVALID_PASSWORD: 'user.INVALID_PASSWORD',
+  STATS_RETRIEVED: 'user.STATS_RETRIEVED',
 } as const;
 
 export type UserI18nKey = (typeof USER_I18N)[keyof typeof USER_I18N];

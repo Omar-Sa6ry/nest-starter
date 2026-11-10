@@ -31,7 +31,7 @@ tasks:
   update:
     desc: Upgrade dependencies in package.json and install
     cmds:
-      - npx npm-check-updates -u
+      - npx npm-check-updates -u --target minor
       - npm install --legacy-peer-deps
 
   # Application Lifecycle
@@ -261,6 +261,16 @@ tasks:
     cmds:
       - docker compose {{.COMPOSE_DEV}} stop redis
 
+  redis:cli:
+    desc: Connect to redis-cli in dev container
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} exec redis redis-cli
+
+  redis:flush:
+    desc: Flush all Redis keys in development container
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} exec redis redis-cli FLUSHALL
+
   minio:up:
     desc: Start development MinIO S3 object storage container only
     cmds:
@@ -271,7 +281,51 @@ tasks:
     cmds:
       - docker compose {{.COMPOSE_DEV}} stop minio minio-init
 
+  logs:minio:
+    desc: Stream MinIO development logs
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} logs -f minio
+
+  logs:prometheus:
+    desc: Stream Prometheus development logs
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} logs -f prometheus
+
+  # Migrations
+  typeorm:migration:run:
+    desc: Run pending TypeORM migrations
+    cmds:
+      - npm run typeorm:migration:run
+
+  typeorm:migration:revert:
+    desc: Revert last TypeORM migration
+    cmds:
+      - npm run typeorm:migration:revert
+
+  typeorm:migration:generate:
+    desc: Generate a new TypeORM migration based on entity diffs
+    cmds:
+      - npm run typeorm:migration:generate
+
+  typeorm:migration:create:
+    desc: Create an empty TypeORM migration file
+    cmds:
+      - npm run typeorm:migration:create
+
   # Comprehensive Teardown
+  prune:
+    desc: Prune dangling docker resources and volumes
+    cmds:
+      - docker system prune -f
+      - docker volume prune -f
+
+  reset:
+    desc: Full reset and recreate development stack
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} down -v
+      - docker system prune -f
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} up -d --build
+
   down:
     desc: Terminate all running docker resources across all environments
     cmds:

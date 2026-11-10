@@ -5,6 +5,9 @@ import {
   CreateDateColumn,
   Index,
   BeforeInsert,
+  ManyToOne,
+  JoinColumn,
+  type Relation,
 } from 'typeorm';
 import {
   ChannelType,
@@ -12,8 +15,10 @@ import {
   type NotificationMessage,
   type NotificationOutboxState,
 } from '@bts-soft/core';
+import type { User } from '../../user/entity/user.entity.js';
 
 @Entity('notification_outbox')
+@Index(['state', 'availableAt'])
 export class NotificationOutboxEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id: string = IdGenerator.generate();
@@ -24,6 +29,14 @@ export class NotificationOutboxEntity {
       this.id = IdGenerator.generate();
     }
   }
+
+  @Column({ name: 'user_id', type: 'varchar', length: 36, nullable: true })
+  @Index()
+  userId?: string | null;
+
+  @ManyToOne('User', { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'user_id' })
+  user?: Relation<User>;
 
   @Column({ type: 'varchar', length: 64 })
   @Index()

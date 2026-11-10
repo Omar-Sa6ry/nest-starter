@@ -10,6 +10,21 @@ export class PaginationInfo {
   currentPage: number;
 
   @Field(() => Int, { nullable: true })
+  totalPages?: number;
+
+  @Field(() => Int, { nullable: true })
+  limit?: number;
+
+  @Field(() => Boolean, { nullable: true })
+  hasPreviousPage?: boolean;
+
+  @Field(() => Boolean, { nullable: true })
+  hasNextPage?: boolean;
+
+  @Field(() => Int, { nullable: true })
+  previousPage?: number;
+
+  @Field(() => Int, { nullable: true })
   nextPage?: number;
 }
 

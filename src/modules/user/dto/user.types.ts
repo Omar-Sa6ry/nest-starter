@@ -1,4 +1,4 @@
-import { ObjectType, Field, InputType, ID } from '@nestjs/graphql';
+import { ObjectType, Field, InputType, ID, Int, Float } from '@nestjs/graphql';
 import { PasswordField, TextField } from '@bts-soft/core';
 import { IsOptional, IsString } from 'class-validator';
 import {
@@ -47,6 +47,21 @@ export class UserResponse extends GeneralResponse(UserType) {}
 
 @ObjectType()
 export class PaginatedUsersResponse extends PaginatedResponse(UserType) {}
+
+@ObjectType()
+export class UserStatsType {
+  @Field(() => Int)
+  totalUsers: number;
+
+  @Field(() => Int)
+  usersThisMonth: number;
+
+  @Field(() => Float)
+  percentageIncrease: number;
+}
+
+@ObjectType()
+export class UserStatsResponse extends GeneralResponse(UserStatsType) {}
 
 @InputType()
 export class ChangePasswordInput {

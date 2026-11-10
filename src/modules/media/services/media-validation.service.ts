@@ -49,9 +49,6 @@ export class MediaValidationService {
     return true;
   }
 
-  /**
-   * Validates file magic bytes by reading initial header bytes
-   */
   validateMagicBytes(buffer: Buffer, declaredMime: string): boolean {
     if (!buffer || buffer.length === 0) return false;
     const lowerMime = declaredMime.toLowerCase();

@@ -5,7 +5,7 @@ export interface IAuthCommand<TInput, TOutput> {
   execute(input: TInput): Promise<TOutput>;
 }
 
-export interface RegisterCommandInput {
+export interface IRegisterCommandInput {
   email: string;
   password: string;
   firstName: string;
@@ -14,35 +14,44 @@ export interface RegisterCommandInput {
   imageUrl?: string;
 }
 
-export interface LoginCommandInput {
+export interface ILoginCommandInput {
   email: string;
   password: string;
 }
 
-export interface ForgetPasswordCommandInput {
+export interface IForgetPasswordCommandInput {
   email: string;
 }
 
-export interface ResetPasswordCommandInput {
+export interface IResetPasswordCommandInput {
   token: string;
   passwordNew: string;
 }
 
-export interface RefreshTokenCommandInput {
+export interface IRefreshTokenCommandInput {
   refreshToken: string;
 }
 
-export interface LogoutCommandInput {
+export interface ILogoutCommandInput {
   userId: string;
   sessionId: string;
   accessToken?: string;
 }
 
-export interface AuthResult {
+export interface IAuthResult {
   user: User;
   accessToken: string;
   refreshToken: string;
 }
+
+// Backward-compatible type aliases
+export type RegisterCommandInput = IRegisterCommandInput;
+export type LoginCommandInput = ILoginCommandInput;
+export type ForgetPasswordCommandInput = IForgetPasswordCommandInput;
+export type ResetPasswordCommandInput = IResetPasswordCommandInput;
+export type RefreshTokenCommandInput = IRefreshTokenCommandInput;
+export type LogoutCommandInput = ILogoutCommandInput;
+export type AuthResult = IAuthResult;
 
 export function toAuthPayload(user: User, accessToken: string, refreshToken: string): AuthPayloadType {
   return {
@@ -54,7 +63,7 @@ export function toAuthPayload(user: User, accessToken: string, refreshToken: str
       role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt,
-      updatedAt:user.updatedAt,
+      updatedAt: user.updatedAt,
       imageUrl: user.imageUrl,
     },
     accessToken,

@@ -20,8 +20,6 @@ import type { WsHandshake } from '../types/realtime.types.js';
  *  1. `Authorization: Bearer <jwt>` — the standard header;
  *  2. `auth: { token }` — socket.io's native auth payload (browser friendly);
  *  3. `?token=` — query string for clients that can set neither of the above.
- *
- * يقرأ رمز الوصول من مصافحة socket.io عبر الترويسة أو حقل auth أو الاستعلام.
  */
 export function extractToken(handshake: WsHandshake): string | null {
   const header = firstString(handshake.headers[WS_AUTH_HEADER]);

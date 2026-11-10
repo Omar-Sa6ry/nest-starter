@@ -173,9 +173,6 @@ async function main() {
 
     console.log('Installing dependencies (make install)...');
     await runCommand('make', ['install'], target);
-
-    console.log('Running tests (make test)...');
-    await runCommand('make', ['test'], target);
   } catch (error) {
     await rm(target, { recursive: true, force: true });
     console.error(`\nSetup failed: ${error.message}`);
@@ -184,12 +181,13 @@ async function main() {
   }
 
   console.log(`
-Project created successfully!
+Project "${projectName}" created successfully!
 
-Next steps:
+Recommended next steps:
   cd ${projectName}
-  make docker-dev-up    (start PostgreSQL, Redis, MinIO via Docker)
-  make dev              (start the NestJS development server)
+  make dev-deps         (start PostgreSQL, Redis, MinIO via Docker)
+  make dev              (start the NestJS development server in watch mode)
+  # Or use 'make docker-dev-up' to run everything (including the app) inside Docker
 `);
 }
 

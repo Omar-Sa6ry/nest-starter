@@ -1,31 +1,31 @@
 import { PaymentStatus } from '../enums/payment-status.enum.js';
 import { PaymentCurrency } from '../enums/payment-currency.enum.js';
 
-export interface PaymentCustomerInfo {
+export interface IPaymentCustomerInfo {
   name: string;
   email: string;
   phone?: string;
 }
 
-export interface PaymentItemInfo {
+export interface IPaymentItemInfo {
   name: string;
   quantity: number;
   unitAmount: number;
   description?: string;
 }
 
-export interface InitiatePaymentParams {
+export interface IInitiatePaymentParams {
   transactionId: string;
   amount: number;
   currency: PaymentCurrency;
-  customer: PaymentCustomerInfo;
-  items?: PaymentItemInfo[];
+  customer: IPaymentCustomerInfo;
+  items?: IPaymentItemInfo[];
   returnUrl?: string;
   cancelUrl?: string;
   metadata?: Record<string, unknown>;
 }
 
-export interface InitiatePaymentResult {
+export interface IInitiatePaymentResult {
   providerTransactionId: string;
   checkoutUrl?: string;
   referenceNumber?: string;
@@ -33,7 +33,7 @@ export interface InitiatePaymentResult {
   status: PaymentStatus;
 }
 
-export interface VerifyPaymentResult {
+export interface IVerifyPaymentResult {
   providerTransactionId: string;
   status: PaymentStatus;
   amountPaid?: number;
@@ -42,19 +42,19 @@ export interface VerifyPaymentResult {
   failureReason?: string;
 }
 
-export interface RefundPaymentParams {
+export interface IRefundPaymentParams {
   providerTransactionId: string;
   amount?: number;
   reason?: string;
 }
 
-export interface RefundPaymentResult {
+export interface IRefundPaymentResult {
   refundId: string;
   status: PaymentStatus;
   rawResponse?: Record<string, unknown>;
 }
 
-export interface WebhookVerificationResult {
+export interface IWebhookVerificationResult {
   isValid: boolean;
   event: string;
   transactionId?: string;
@@ -63,3 +63,14 @@ export interface WebhookVerificationResult {
   rawPayload: Record<string, unknown>;
   failureReason?: string;
 }
+
+// Backward-compatible type aliases
+export type PaymentCustomerInfo = IPaymentCustomerInfo;
+export type PaymentItemInfo = IPaymentItemInfo;
+export type InitiatePaymentParams = IInitiatePaymentParams;
+export type InitiatePaymentResult = IInitiatePaymentResult;
+export type VerifyPaymentResult = IVerifyPaymentResult;
+export type RefundPaymentParams = IRefundPaymentParams;
+export type RefundPaymentResult = IRefundPaymentResult;
+export type WebhookVerificationResult = IWebhookVerificationResult;
+

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import {
   INotificationLogRepository,
   NotificationLog,
+  ChannelType,
   IdGenerator,
 } from '@bts-soft/core';
 import { NotificationLogEntity } from '../entities/notification-log.entity.js';
@@ -19,7 +20,7 @@ export class TypeOrmNotificationLogRepository implements INotificationLogReposit
     const entity = this.repo.create({
       id: IdGenerator.generate('snowflake'),
       jobId: log.jobId,
-      channel: log.channel,
+      channel: log.channel as ChannelType,
       recipientId: log.recipientId,
       status: log.status,
       errorMessage: log.errorMessage,
@@ -31,7 +32,8 @@ export class TypeOrmNotificationLogRepository implements INotificationLogReposit
     });
 
     const saved = await this.repo.save(entity);
-    return this.toLog(saved);
+    const savedEntity = Array.isArray(saved) ? saved[0] : saved;
+    return this.toLog(savedEntity);
   }
 
   async updateByJobId(

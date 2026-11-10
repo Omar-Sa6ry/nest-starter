@@ -1,5 +1,5 @@
 import * as dns from 'dns';
-import * as bodyParser from 'body-parser';
+import bodyParser from 'body-parser';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

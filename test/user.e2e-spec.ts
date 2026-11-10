@@ -2,12 +2,8 @@ import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { UserService } from '../src/modules/user/user.service.js';
 import { DbUserService } from '../src/modules/user/db-user.service.js';
 import { Role } from '../src/common/constant/enum.constant.js';
+import type { RedisService } from '@bts-soft/core';
 
-/**
- * Structural mirror of the (module-private) `ICacheStore` interface the
- * `UserService` constructor expects for its `CACHE_MANAGER` injection.
- * Keeps every cache mock fully typed while satisfying the real contract.
- */
 interface CacheStoreMock {
   get: Mock<(key: string) => Promise<unknown>>;
   set: Mock<(key: string, value: unknown, ttlSeconds?: number) => Promise<unknown>>;
@@ -55,7 +51,7 @@ describe('UserService (e2e)', () => {
       del: vi.fn<(key: string) => Promise<unknown>>(),
     };
 
-    service = new UserService(mockDbUserService, mockCacheManager);
+    service = new UserService(mockDbUserService, mockCacheManager as unknown as RedisService);
   });
 
   describe('findById', () => {

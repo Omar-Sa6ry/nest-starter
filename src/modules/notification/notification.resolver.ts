@@ -12,8 +12,6 @@ import {
 } from './dtos/notification-response.types.js';
 import {
   DeadLetterJobDiagnosticsType,
-  NotificationDispatchPayload,
-  NotificationPreferenceStatusType,
 } from './dtos/notification.types.js';
 import { IntResponse } from '../../common/graphql/general-response.type.js';
 import { NOTIFICATION_I18N } from './constants/notification-i18n.constants.js';
@@ -79,13 +77,9 @@ export class NotificationResolver {
       'Dispatch a multi-channel notification or enqueue for background delivery',
   })
   @Auth([Permission.NOTIFICATION_SEND])
-  async sendNotification(@Args('input') input: SendNotificationInput): Promise<{
-    statusCode: number;
-    success: boolean;
-    message: string;
-    timeStamp: string;
-    data: NotificationDispatchPayload;
-  }> {
+  async sendNotification(
+    @Args('input') input: SendNotificationInput,
+  ): Promise<NotificationDispatchResponse> {
     const data = await this.notificationAppService.sendNotification(input);
     return {
       statusCode: 200,
@@ -103,13 +97,7 @@ export class NotificationResolver {
   async updateNotificationPreferences(
     @Args('input') input: UpdateNotificationPreferenceInput,
     @CurrentUser() currentUser: IAuthenticatedUser,
-  ): Promise<{
-    statusCode: number;
-    success: boolean;
-    message: string;
-    timeStamp: string;
-    data: NotificationPreferenceStatusType;
-  }> {
+  ): Promise<NotificationPreferenceResponse> {
     await this.assertCanAccessUserResource(currentUser, input.recipientId);
 
     const data = await this.notificationAppService.updatePreferences(input);
@@ -132,13 +120,7 @@ export class NotificationResolver {
     @CurrentUser() currentUser: IAuthenticatedUser,
     @Args('category', { type: () => NotificationCategory, nullable: true })
     category?: NotificationCategory,
-  ): Promise<{
-    statusCode: number;
-    success: boolean;
-    message: string;
-    timeStamp: string;
-    data: NotificationPreferenceStatusType;
-  }> {
+  ): Promise<NotificationPreferenceResponse> {
     await this.assertCanAccessUserResource(currentUser, recipientId);
 
     const data = await this.notificationAppService.getPreferenceStatus(
@@ -159,13 +141,7 @@ export class NotificationResolver {
     description: 'Get dead letter queue (DLQ) failure statistics',
   })
   @Auth([Permission.NOTIFICATION_MANAGE])
-  async getNotificationDlqStats(): Promise<{
-    statusCode: number;
-    success: boolean;
-    message: string;
-    timeStamp: string;
-    data: { totalFailed: number };
-  }> {
+  async getNotificationDlqStats(): Promise<DeadLetterStatsResponse> {
     const data = await this.notificationAppService.getDlqStats();
     return {
       statusCode: 200,
@@ -197,13 +173,7 @@ export class NotificationResolver {
     @Args('jobId', { type: () => String }) jobId: string,
     @Args('channel', { type: () => ChannelType, nullable: true })
     channel?: ChannelType,
-  ): Promise<{
-    statusCode: number;
-    success: boolean;
-    message: string;
-    timeStamp: string;
-    data: NotificationDispatchPayload;
-  }> {
+  ): Promise<NotificationDispatchResponse> {
     const data = await this.notificationAppService.replayDlqJob(jobId, channel);
     return {
       statusCode: 200,
@@ -221,13 +191,7 @@ export class NotificationResolver {
   async purgeNotificationDlq(
     @Args('channel', { type: () => ChannelType, nullable: true })
     channel?: ChannelType,
-  ): Promise<{
-    statusCode: number;
-    success: boolean;
-    message: string;
-    timeStamp: string;
-    data: number;
-  }> {
+  ): Promise<IntResponse> {
     const count = await this.notificationAppService.purgeDlq(channel);
     return {
       statusCode: 200,

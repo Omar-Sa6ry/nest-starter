@@ -6,7 +6,7 @@ import {
   IPaymentStrategy,
   ICustomerVaultCapability,
   ISubscriptionPaymentCapability,
-} from '../interfaces/payment-strategy.interface.js';
+} from '../interfaces/IPayment-strategy.interface.js';
 import {
   InitiatePaymentParams,
   InitiatePaymentResult,
@@ -14,7 +14,7 @@ import {
   RefundPaymentParams,
   RefundPaymentResult,
   WebhookVerificationResult,
-} from '../interfaces/payment-result.interface.js';
+} from '../interfaces/IPayment-result.interface.js';
 
 @Injectable()
 export class StripeStrategy
@@ -210,3 +210,4 @@ export class StripeStrategy
     return { subscriptionId: `sub_${customerId}_${planId}`, status: 'active' };
   }
 }
+

@@ -16,14 +16,18 @@ yarn-error.log*
 lerna-debug.log*
 
 # Environment Configuration
-# Specific templates are versioned; secret/local values remain uncommitted
+# Specific templates are versioned; staging/production secrets remain strictly uncommitted
 environments/*
 .env
 .env.*
 !.env.example
-!environments/.env.*
+!environments/.env.development
+!environments/.env.test
+environments/.env.staging
+environments/.env.production
 environments/.env.local*
 environments/.env.*.local
+notes.txt
 
 # Operating System Files
 .DS_Store

@@ -22,6 +22,7 @@ query {
 }
 
 # GET USER BY ID (Authenticated — requires VIEW_USER => admin)
+query {
   getUser(id: "372342399391995648") {
     statusCode
     message
@@ -96,21 +97,6 @@ mutation {
   }
 }
 
-# Update the avatar URL (Authenticated)
-mutation {
-  updateProfile(input: { imageUrl: "https://example.com/avatar.png" }) {
-    statusCode
-    message
-    success
-    timeStamp
-    data {
-      id
-      imageUrl
-      updatedAt
-    }
-  }
-}
-
 # PROMOTE TO ADMIN (Authenticated — requires EDIT_USER_ROLE => admin)
 mutation {
   promoteUserToAdmin(id: "372389586246045696") {
@@ -124,7 +110,7 @@ mutation {
 
 # UPDATE USER ROLE (Authenticated — requires EDIT_USER_ROLE => admin)
 mutation {
-  updateUserRole(id: "372389586246045696", role: "admin") {
+  updateUserRole(id: "372389586246045696", role: ADMIN) {
     statusCode
     message
     success
@@ -135,7 +121,7 @@ mutation {
 
 # Demote an admin back to a regular user
 mutation {
-  updateUserRole(id: "372389586246045696", role: "user") {
+  updateUserRole(id: "372389586246045696", role: USER) {
     statusCode
     message
     success
@@ -166,9 +152,27 @@ mutation {
   }
 }
 
+# GET USER STATS (Authenticated — requires VIEW_USER => admin)
+query {
+  getUserStats {
+    statusCode
+    message
+    success
+    timeStamp
+    data {
+      totalUsers
+      usersThisMonth
+      percentageIncrease
+    }
+  }
+}
+
 # CHANGE PASSWORD — lives in the user module, documented in ./auth.graphql
 mutation {
   changePassword(input: { passwordOld: "...", passwordNew: "..." }) {
-    statusCode message success timeStamp
+    statusCode
+    message
+    success
+    timeStamp
   }
 }

@@ -6,12 +6,14 @@
 .PHONY: help install ncu update dev build deploy clean start start-dev start-debug start-prod \
         lint format typecheck test test-watch test-cov test-debug test-e2e \
         health health-ready metrics \
-        docker-dev-up docker-dev-down docker-dev-logs docker-dev-rebuild \
+        typeorm-migration-create typeorm-migration-generate typeorm-migration-run typeorm-migration-revert \
+        dev-deps docker-dev-up docker-dev-down docker-dev-logs docker-dev-rebuild \
         docker-test-up docker-test-down docker-test-logs \
-        docker-staging-up docker-staging-down docker-staging-logs \
-        docker-prod-up docker-prod-down docker-prod-logs \
-        db-up db-down redis-up redis-down redis-cli s3-up s3-down logs-app logs-db logs-redis \
-        shell-app shell-db shell-redis down prune
+        docker-staging-up docker-staging-down docker-staging-logs docker-staging-rebuild \
+        docker-prod-up docker-prod-down docker-prod-logs docker-prod-rebuild docker-prod-shell \
+        db-up db-down redis-up redis-down redis-cli redis-flush s3-up s3-down \
+        logs-app logs-db logs-redis logs-minio logs-prometheus \
+        shell-app shell-db shell-redis shell-minio down prune reset
 
 # Base URL used by the health / metrics targets.
 # Override per call: `make health APP_URL=http://localhost:8080`
@@ -28,7 +30,7 @@ ncu:
 	npx npm-check-updates
 
 update:
-	npx npm-check-updates -u
+	npx npm-check-updates -u --target minor
 	npm install --legacy-peer-deps
 
 typecheck:
@@ -89,6 +91,22 @@ test-debug:
 test-e2e:
 	npm run test:e2e
 
+# Migrations:
+typeorm-migration-create:
+	npm run typeorm:migration:create
+
+typeorm-migration-generate:
+	npm run typeorm:migration:generate
+
+typeorm-migration-run:
+	npm run typeorm:migration:run
+
+typeorm-migration-revert:
+	npm run typeorm:migration:revert
+
+dev-deps:
+	$(COMPOSE_DEV) up -d postgres redis minio minio-init
+
 docker-dev-up:
 	$(COMPOSE_DEV) up -d --build
 
@@ -104,7 +122,7 @@ docker-dev-rebuild:
 	$(COMPOSE_DEV) up -d --build --force-recreate app
 
 docker-test-up:
-	$(COMPOSE_TEST) up -d --remove-orphans postgres redis
+	$(COMPOSE_TEST) up -d --remove-orphans postgres redis minio minio-init
 
 docker-test-down:
 	$(COMPOSE_TEST) down
@@ -121,6 +139,10 @@ docker-staging-down:
 docker-staging-logs:
 	$(COMPOSE_STAGING) logs -f app
 
+docker-staging-rebuild:
+	$(COMPOSE_STAGING) down
+	$(COMPOSE_STAGING) up -d --build --force-recreate app
+
 docker-prod-up:
 	$(COMPOSE_PROD) up -d --build
 
@@ -129,6 +151,13 @@ docker-prod-down:
 
 docker-prod-logs:
 	$(COMPOSE_PROD) logs -f app
+
+docker-prod-rebuild:
+	$(COMPOSE_PROD) down
+	$(COMPOSE_PROD) up -d --build --force-recreate app
+
+docker-prod-shell:
+	$(COMPOSE_PROD) exec app sh
 
 db-up:
 	$(COMPOSE_DEV) up -d postgres
@@ -145,6 +174,9 @@ redis-down:
 redis-cli:
 	$(COMPOSE_DEV) exec redis redis-cli
 
+redis-flush:
+	$(COMPOSE_DEV) exec redis redis-cli FLUSHALL
+
 s3-up:
 	$(COMPOSE_DEV) up -d minio
 
@@ -160,6 +192,12 @@ logs-db:
 logs-redis:
 	$(COMPOSE_DEV) logs -f redis
 
+logs-minio:
+	$(COMPOSE_DEV) logs -f minio
+
+logs-prometheus:
+	$(COMPOSE_DEV) logs -f prometheus
+
 shell-app:
 	$(COMPOSE_DEV) exec app sh
 
@@ -168,6 +206,9 @@ shell-db:
 
 shell-redis:
 	$(COMPOSE_DEV) exec redis sh
+
+shell-minio:
+	$(COMPOSE_DEV) exec minio sh
 
 down:
 	$(COMPOSE_DEV) down
@@ -178,6 +219,11 @@ down:
 prune:
 	docker system prune -f
 	docker volume prune -f
+
+reset:
+	$(COMPOSE_DEV) down -v
+	docker system prune -f
+	$(COMPOSE_DEV) up -d --build
 
 help:
 	@echo "Available targets:"

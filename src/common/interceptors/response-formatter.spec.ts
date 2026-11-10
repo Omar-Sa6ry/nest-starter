@@ -91,6 +91,7 @@ describe('ResponseFormatter', () => {
         success: false,
         statusCode: 500,
         message: 'boom',
+        timeStamp: expect.any(String),
         timestamp: expect.any(String),
       });
       expect(new Date(result.timestamp).toISOString()).toBe(result.timestamp);

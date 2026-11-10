@@ -1,26 +1,26 @@
 import { PaymentProvider } from '../enums/payment-provider.enum.js';
 import {
-  InitiatePaymentParams,
-  InitiatePaymentResult,
-  VerifyPaymentResult,
-  RefundPaymentParams,
-  RefundPaymentResult,
-  WebhookVerificationResult,
-} from './payment-result.interface.js';
+  IInitiatePaymentParams,
+  IInitiatePaymentResult,
+  IVerifyPaymentResult,
+  IRefundPaymentParams,
+  IRefundPaymentResult,
+  IWebhookVerificationResult,
+} from './IPayment-result.interface.js';
 
 export interface IPaymentStrategy {
   readonly provider: PaymentProvider;
 
-  initiatePayment(params: InitiatePaymentParams): Promise<InitiatePaymentResult>;
+  initiatePayment(params: IInitiatePaymentParams): Promise<IInitiatePaymentResult>;
 
-  verifyPayment(providerTransactionId: string): Promise<VerifyPaymentResult>;
+  verifyPayment(providerTransactionId: string): Promise<IVerifyPaymentResult>;
 
-  refundPayment(params: RefundPaymentParams): Promise<RefundPaymentResult>;
+  refundPayment(params: IRefundPaymentParams): Promise<IRefundPaymentResult>;
 
   verifyAndParseWebhook(
     headers: Record<string, string | string[] | undefined>,
     rawBody: Buffer | string | Record<string, unknown>,
-  ): Promise<WebhookVerificationResult>;
+  ): Promise<IWebhookVerificationResult>;
 }
 
 // Capability interface for providers supporting Customer Vault / Tokenization (e.g. Stripe, Paymob)
@@ -38,3 +38,4 @@ export interface ISubscriptionPaymentCapability {
     planId: string,
   ): Promise<{ subscriptionId: string; status: string }>;
 }
+

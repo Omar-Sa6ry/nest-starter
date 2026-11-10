@@ -53,16 +53,6 @@ import { UserModule } from '../user/user.module.js';
     }),
   ],
   providers: [
-    TypeOrmNotificationLogRepository,
-    TypeOrmNotificationOutboxRepository,
-    {
-      provide: NOTIFICATION_LOG_REPOSITORY,
-      useExisting: TypeOrmNotificationLogRepository,
-    },
-    {
-      provide: NOTIFICATION_OUTBOX_REPOSITORY,
-      useExisting: TypeOrmNotificationOutboxRepository,
-    },
     NotificationMessageFactory,
     NotificationService,
     NotificationResolver,
@@ -73,8 +63,6 @@ import { UserModule } from '../user/user.module.js';
   exports: [
     NotificationService,
     NotificationMessageFactory,
-    NOTIFICATION_LOG_REPOSITORY,
-    NOTIFICATION_OUTBOX_REPOSITORY,
   ],
 })
 export class NotificationModule {}

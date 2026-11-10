@@ -13,5 +13,6 @@
   "USER_DELETED": "تم حذف المستخدم بنجاح",
   "INVALID_IMAGE_URL": "رابط الصورة غير صالح",
   "INVALID_CREDENTIALS": "بيانات الاعتماد غير صالحة",
-  "INVALID_PASSWORD": "كلمة المرور الحالية غير صحيحة"
+  "INVALID_PASSWORD": "كلمة المرور الحالية غير صحيحة",
+  "STATS_RETRIEVED": "تم استرجاع إحصائيات المستخدمين بنجاح"
 }

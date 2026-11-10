@@ -38,6 +38,7 @@ describe('DbUserService', () => {
       findAndCount: vi.fn(),
       save: vi.fn(),
       delete: vi.fn(),
+      softDelete: vi.fn(),
       count: vi.fn(),
     };
 
@@ -230,28 +231,19 @@ describe('DbUserService', () => {
   });
 
   describe('updateUserRole', () => {
-    it('normalizes and applies a valid role', async () => {
+    it('applies a valid role', async () => {
       mockRepo.findOne.mockResolvedValue({ ...sampleUser });
       mockRepo.save.mockImplementation((u: unknown) => u);
 
-      const result = await service.updateUserRole('user-1', 'ADMIN');
+      const result = await service.updateUserRole('user-1', Role.ADMIN);
 
       expect(result.role).toBe(Role.ADMIN);
-    });
-
-    it('keeps raw role when not in enum', async () => {
-      mockRepo.findOne.mockResolvedValue({ ...sampleUser });
-      mockRepo.save.mockImplementation((u: unknown) => u);
-
-      const result = await service.updateUserRole('user-1', 'CUSTOM');
-
-      expect(result.role).toBe('CUSTOM');
     });
 
     it('throws when user not found', async () => {
       mockRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.updateUserRole('user-1', 'ADMIN')).rejects.toThrow(
+      await expect(service.updateUserRole('user-1', Role.ADMIN)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -279,17 +271,17 @@ describe('DbUserService', () => {
   describe('deleteUser', () => {
     it('deletes and reports affected rows', async () => {
       mockRepo.findOne.mockResolvedValue({ ...sampleUser });
-      mockRepo.delete.mockResolvedValue({ affected: 1 });
+      mockRepo.softDelete.mockResolvedValue({ affected: 1 });
 
       const result = await service.deleteUser('user-1');
 
       expect(result).toBe(true);
-      expect(mockRepo.delete).toHaveBeenCalledWith('user-1');
+      expect(mockRepo.softDelete).toHaveBeenCalledWith('user-1');
     });
 
     it('returns false when nothing affected', async () => {
       mockRepo.findOne.mockResolvedValue({ ...sampleUser });
-      mockRepo.delete.mockResolvedValue({ affected: 0 });
+      mockRepo.softDelete.mockResolvedValue({ affected: 0 });
 
       const result = await service.deleteUser('user-1');
 

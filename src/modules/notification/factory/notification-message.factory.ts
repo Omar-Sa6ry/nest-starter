@@ -7,7 +7,7 @@ import {
   NotificationCategory,
 } from '@bts-soft/core';
 
-export interface CreateMessageOptions {
+export interface ICreateMessageOptions {
   recipientId: string;
   body: string;
   subject?: string;
@@ -19,9 +19,11 @@ export interface CreateMessageOptions {
   metadata?: Record<string, unknown>;
 }
 
+export type CreateMessageOptions = ICreateMessageOptions;
+
 @Injectable()
 export class NotificationMessageFactory {
-  createMessage(options: CreateMessageOptions): NotificationMessage {
+  createMessage(options: ICreateMessageOptions): NotificationMessage {
     const id = IdGenerator.generate('snowflake');
 
     return {
