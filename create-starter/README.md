@@ -119,8 +119,8 @@ The CLI traverses all source code files, Docker Compose files, Makefiles, enviro
 | `job_name: nest-starter` | `job_name: <project-name>` | Prometheus scrape job configuration |
 
 ### Step 4: Package Dependency Synchronization
-- Updates package dependencies via `npm run update`.
-- Runs `make install` (`npm install --legacy-peer-deps`) to populate `node_modules` with valid locked dependencies.
+- Automatically executes dependency installation via `make install` (`npm install --legacy-peer-deps`).
+- Outputs recommended instructions to run `make dev-deps` then `make dev` for the optimal developer experience.
 
 ---
 
