@@ -58,7 +58,7 @@
     "README.md"
   ],
   "dependencies": {
-    "degit": "^2.8.4"
+    "degit": "^3.10.1"
   },
   "engines": {
     "node": ">=22.0.0",
