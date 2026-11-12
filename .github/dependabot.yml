@@ -27,6 +27,15 @@ updates:
       types:
         patterns:
           - "@types/*"
+      dev-tools:
+        patterns:
+          - "typescript"
+          - "prettier"
+          - "oxlint"
+          - "vitest*"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # 2. NPM Dependencies (create-starter CLI tool)
   - package-ecosystem: "npm"
