@@ -1,0 +1,62 @@
+name: CD Production Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      dry_run:
+        description: 'Run deployment in dry-run mode (no actual deployment)'
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ inputs.target_environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Example: Workflow command to mask sensitive parameters / secrets
+      - name: Set deployment metadata & Mask variables
+        id: meta
+        run: |
+          echo "Deploying to environment: ${{ inputs.target_environment }}"
+          echo "Dry run mode: ${{ inputs.dry_run }}"
+          
+          # Workflow Command: Add masking to prevent leaking in console
+          echo "::add-mask::secret-token-example"
+          
+          # Workflow Command: Export environment variable dynamically
+          echo "DEPLOY_TIMESTAMP=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+
+      - name: Execute Deployment
+        run: |
+          # -------------------------------------------------------------
+          # CUSTOMIZE THIS STEP FOR YOUR INFRASTRUCTURE:
+          # Options for Starter projects:
+          # 1. SSH into VPS (e.g., appleboy/ssh-action):
+          #    ssh user@server "cd /path/to/app && docker compose pull && docker compose up -d"
+          # 2. Deploy to AWS ECS / EKS / DigitalOcean / Render / Fly.io / Coolify
+          # 3. Webhook deployment trigger
+          # -------------------------------------------------------------
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "::notice title=Dry Run::Deployment skipped (Dry Run enabled)."
+          else
+            echo "::notice title=Deploying::Starting deployment to ${{ inputs.target_environment }} at $DEPLOY_TIMESTAMP..."
+            echo "Docker containers rolling update simulated."
+          fi
+

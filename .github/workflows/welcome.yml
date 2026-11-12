@@ -1,0 +1,31 @@
+name: Auto Assign & Welcome Contributors
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome-and-assign:
+    name: Greet First-Time Contributor & Auto Assign
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome First-time Contributors
+        uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: |
+            **Welcome to the Starter Project!**
+            Thank you for opening this issue. Please make sure you have checked existing issues and provided reproduction steps if reporting a bug.
+          pr-message: |
+            **Thank you for your Pull Request!**
+            A maintainer will review your changes shortly. Please ensure:
+            - Tests pass (`npm test` and `npm run test:e2e`)
+            - Linter & Formatting checks pass (`npm run lint`, `npm run format`)
+            - Your commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).
+

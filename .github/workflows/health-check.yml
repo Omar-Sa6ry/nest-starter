@@ -1,0 +1,56 @@
+name: Health Check Monitor
+
+# Schedule trigger: runs periodically (every 6 hours) to verify deployed app health
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  # Manual trigger to test endpoint anytime
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target Base URL to probe (e.g. https://api.yourdomain.com)'
+        required: false
+        type: string
+        default: 'https://api.example.com'
+
+jobs:
+  ping-health:
+    name: Probe Health Endpoints
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine Target URL
+        id: config
+        run: |
+          # Priority: Manual input -> GitHub Secret (APP_URL) -> Default fallback
+          TARGET="${{ inputs.target_url != '' && inputs.target_url || secrets.APP_URL || 'https://api.example.com' }}"
+          echo "url=$TARGET" >> $GITHUB_OUTPUT
+
+      - name: Ping /health probe
+        run: |
+          TARGET_URL="${{ steps.config.outputs.url }}"
+          
+          # If still placeholder, skip probe with notice
+          if [ "$TARGET_URL" = "https://api.example.com" ]; then
+            echo "::notice title=Health Monitor::Target URL is placeholder ($TARGET_URL). Add APP_URL secret or pass url in workflow_dispatch."
+            exit 0
+          fi
+
+          echo "::group::Pinging Health Endpoint"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL/health" || echo "000")
+          echo "HTTP Status Code: $HTTP_STATUS"
+          echo "::endgroup::"
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "::error title=Health Check Failed::Probe $TARGET_URL/health returned HTTP $HTTP_STATUS"
+            exit 1
+          else
+            echo "::notice title=Health Check Passed::Service at $TARGET_URL/health is alive!"
+          fi
+
+      - name: Record Status in Summary
+        if: always()
+        run: |
+          echo "### Health Probe Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target URL:** \`${{ steps.config.outputs.url }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Checked At:** \`$(date -u)\`" >> $GITHUB_STEP_SUMMARY
+

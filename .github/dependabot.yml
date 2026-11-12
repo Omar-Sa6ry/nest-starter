@@ -1,0 +1,65 @@
+# Dependabot configuration for NestJS Starter
+# Automatically updates npm packages, Docker images, and GitHub Actions
+version: 2
+updates:
+  # 1. NPM Dependencies (Root Project)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+      apollo-graphql:
+        patterns:
+          - "@apollo/*"
+          - "graphql*"
+      types:
+        patterns:
+          - "@types/*"
+
+  # 2. NPM Dependencies (create-starter CLI tool)
+  - package-ecosystem: "npm"
+    directory: "/create-starter"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "cli"
+    commit-message:
+      prefix: "chore(deps-cli)"
+
+  # 3. GitHub Actions Workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "ci-cd"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(actions)"
+
+  # 4. Docker Base Images
+  - package-ecosystem: "docker"
+    directory: "/infrastructure/docker/production"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "docker"
+      - "infrastructure"
+    commit-message:
+      prefix: "chore(docker)"
+

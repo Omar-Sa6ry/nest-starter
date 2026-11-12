@@ -1,0 +1,81 @@
+name: Docker Build & Publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+    branches:
+      - main
+  # Manual Trigger (workflow_dispatch)
+  workflow_dispatch:
+    inputs:
+      push_image:
+        description: 'Push image to GitHub Container Registry (GHCR)'
+        required: true
+        type: boolean
+        default: false
+      image_tag:
+        description: 'Custom tag name (defaults to latest / commit SHA if blank)'
+        required: false
+        type: string
+        default: 'latest'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker-build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (Multi-platform emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: github.event_name == 'push' || inputs.push_image == true
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+            type=raw,value=${{ inputs.image_tag }},enable=${{ inputs.image_tag != '' }}
+
+      - name: Build and Push Docker image
+        id: build_push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./infrastructure/docker/production/Dockerfile
+          push: ${{ github.event_name == 'push' || inputs.push_image == true }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Workflow Commands demonstration: Notice, Masking, and Markdown Summary
+      - name: Docker Workflow Summary
+        run: |
+          echo "::notice title=Docker Build Complete::Image tagged as: ${{ steps.meta.outputs.tags }}"
+          echo "### Docker Build & Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** \`ghcr.io/${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tags:** \`${{ steps.meta.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pushed to GHCR:** \`${{ github.event_name == 'push' || inputs.push_image == true }}\`" >> $GITHUB_STEP_SUMMARY

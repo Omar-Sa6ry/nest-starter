@@ -1,0 +1,37 @@
+name: Security Audit & Dependency Check
+
+on:
+  # Schedule trigger: Runs every Monday at 02:00 AM UTC
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-audit:
+    name: NPM Audit & Vulnerability Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run NPM Audit
+        run: |
+          echo "::group::Checking npm packages for known vulnerabilities"
+          npm audit --audit-level=high || true
+          echo "::endgroup::"
+
+      - name: Run GitGuardian / Secret scanning or SAST (Placeholder comment)
+        run: |
+          # You can plug your preferred SAST or dependency scanning tool here:
+          # e.g., Snyk, Trivy, or CodeQL.
+          echo "::notice title=Security Check::Security audit executed."
+

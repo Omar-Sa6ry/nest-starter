@@ -1,0 +1,51 @@
+name: Auto Release & Changelog
+
+# Triggered when a new git tag matching semantic versioning is pushed
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  # Manual trigger to draft/publish a release manually
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release (e.g., v1.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Generate GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve Release Tag
+        id: resolve_tag
+        run: |
+          TAG="${{ inputs.tag_name || github.ref_name }}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "::notice title=Creating Release::Target tag is $TAG"
+
+      - name: Build and Package Dist Artifact (Optional)
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+          tar -czf nest-starter-build.tar.gz dist/
+
+      - name: Create GitHub Release with Auto Changelog
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.resolve_tag.outputs.tag }}
+          name: Release ${{ steps.resolve_tag.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            nest-starter-build.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

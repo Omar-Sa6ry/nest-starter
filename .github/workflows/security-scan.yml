@@ -1,0 +1,72 @@
+name: Security & Vulnerability Scan
+
+on:
+  schedule:
+    # Runs every Monday at 02:00 AM UTC
+    - cron: '0 2 * * 1'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  # Manual trigger to run on-demand
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  npm-audit:
+    name: NPM Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run NPM Audit
+        run: |
+          echo "::group::Running npm audit"
+          # Run audit and output warning if issues found (moderate or above)
+          npm audit --audit-level=high || echo "::warning title=Security Audit::Vulnerabilities found in dependencies. Run 'npm audit' locally to inspect."
+          echo "::endgroup::"
+
+  codeql-analysis:
+    name: CodeQL Static Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+  trivy-docker-scan:
+    name: Trivy Container Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build local production image for scanning
+        run: |
+          docker build -t nest-starter-local:scan -f infrastructure/docker/production/Dockerfile .
+
+      - name: Run Aqua Security Trivy Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'nest-starter-local:scan'
+          format: 'table'
+          exit-code: '0' # Set to '1' if you want workflow to fail on critical CVEs
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+

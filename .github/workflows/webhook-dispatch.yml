@@ -1,0 +1,35 @@
+name: Webhook Dispatch Listener
+
+on:
+  # Webhook / External event trigger
+  repository_dispatch:
+    types: [external-deployment, trigger-build, webhook-event]
+  workflow_dispatch:
+    inputs:
+      mock_event_type:
+        description: 'Simulated event type for manual testing'
+        required: false
+        default: 'manual-test'
+
+jobs:
+  handle-webhook:
+    name: Process Incoming Webhook Event
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Webhook Details
+        run: |
+          echo "::group::Webhook Payload Received"
+          echo "Triggered by event: ${{ github.event_name }}"
+          echo "Action type: ${{ github.event.action || inputs.mock_event_type }}"
+          echo "Client payload (if repository_dispatch):"
+          echo '${{ toJson(github.event.client_payload) }}'
+          echo "::endgroup::"
+
+      - name: Execute Custom Webhook Logic
+        run: |
+          # CUSTOM LOGIC:
+          # In a starter template, developers often connect external CMS, CI/CD webhooks,
+          # or third-party webhooks (e.g. Stripe webhook testing, Contentful deploy triggers).
+          # Add your custom scripts, redeploy steps, or notifications here.
+          echo "::notice title=Webhook Handled::Event '${{ github.event.action || inputs.mock_event_type }}' was successfully received."
+

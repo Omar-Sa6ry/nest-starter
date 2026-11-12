@@ -1,0 +1,46 @@
+name: Test Starter CLI & Scaffolding
+
+on:
+  push:
+    paths:
+      - 'create-starter/**'
+      - '.github/workflows/test-cli.yml'
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    paths:
+      - 'create-starter/**'
+      - '.github/workflows/test-cli.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: test-cli-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-create-starter:
+    name: Verify CLI Generator on Node ${{ matrix.node-version }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: ['22']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Test CLI Script Syntax
+        run: |
+          echo "::group::Testing create-starter CLI syntax"
+          node -c ./create-starter/bin/create.js
+          echo "::endgroup::"
+          echo "::notice title=CLI Syntax Valid::create-starter syntax verified successfully."
+

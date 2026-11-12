@@ -70,11 +70,13 @@ Before starting, verify that your environment satisfies the following requiremen
 
 ### 1. Initialize with CLI or Clone
 
-To generate a new project with all branding and identifiers customized automatically:
+The recommended way to start is using `@bts-soft/create-starter`. It automatically downloads the template, sanitizes internal starter directories (`create-starter/` and `media-frontend/`), runs `make install`, and rebrands all configurations:
 
 ```bash
 npm create @bts-soft/starter my-service
 cd my-service
+make dev-deps   # Spin up backing PostgreSQL, Redis, MinIO in Docker (Recommended)
+make dev        # Start the NestJS application in watch mode
 ```
 
 Or clone the repository directly:
@@ -82,6 +84,8 @@ Or clone the repository directly:
 ```bash
 git clone https://github.com/Omar-Sa6ry/nest-starter.git my-service
 cd my-service
+# Remove template-only directories if not needed
+rm -rf create-starter media-frontend
 make install
 ```
 
@@ -276,6 +280,35 @@ Docker Stacks:
   make redis-cli                Open an interactive redis-cli session
   make redis-flush              Flush all keys in the development Redis instance
 ```
+
+---
+
+## GitHub Actions & Workflows
+
+This starter template includes production-grade GitHub Actions workflows, issue templates, and automated maintenance located in the `.github/` directory.
+
+### Overview of Workflows
+
+| Workflow | Triggers | Description |
+| :--- | :--- | :--- |
+| `ci.yml` | `push`, `pull_request`, `workflow_dispatch` | Formats, lints (`oxlint`), typechecks, runs Vitest unit tests with coverage, and executes end-to-end tests against Docker test stack |
+| `docker-publish.yml` | Tag `v*.*.*`, `push` to `main`, `workflow_dispatch` | Builds multi-architecture production Docker image and publishes it to GitHub Container Registry (`ghcr.io`) |
+| `deploy.yml` | `workflow_dispatch` (Manual with inputs) | Standardized deployment workflow template supporting staging and production targets with dry-run support |
+| `deploy-webhook.yml` | `repository_dispatch`, `workflow_dispatch` | External webhook deployment listener triggerable via GitHub REST API or manual execution |
+| `security-scan.yml` | Weekly `schedule` (cron), `push`, `pull_request`, `workflow_dispatch` | Multi-layer vulnerability scanning: `npm audit`, CodeQL static analysis (SAST), and Aqua Trivy container scanning |
+| `health-check.yml` | `schedule` (every 6h), `workflow_dispatch` | Automated monitoring probe for deployed `/health` endpoints using `curl` with secret fallback |
+| `release.yml` | Tag `v*.*.*`, `workflow_dispatch` | Builds distribution bundle and creates automated GitHub Release with conventional changelog |
+| `pr-lint.yml` | `pull_request` (`opened`, `synchronize`, `reopened`) | Validates PR titles against Conventional Commits specification (`feat`, `fix`, `chore`, etc.) |
+| `welcome.yml` | `issues` (`opened`), `pull_request_target` (`opened`) | Automatically welcomes first-time open-source contributors |
+| `stale.yml` | Daily `schedule` (cron), `workflow_dispatch` | Marks and closes inactive issues and pull requests after 60 days of inactivity |
+| `test-cli.yml` | `push`, `pull_request` on `create-starter/**`, `workflow_dispatch` | Tests CLI scaffolding script syntax across Linux and Windows runners |
+
+### Repository Health & Automation Files
+
+- **Issue Templates (`.github/ISSUE_TEMPLATE/`)**: Includes YAML issue forms (`bug_report.yml` and `feature_request.yml`) for structured community feedback.
+- **Dependabot (`.github/dependabot.yml`)**: Automates weekly/monthly version bumps for npm packages (with grouped updates for `@nestjs`, Apollo, and types), GitHub Actions, and Docker base images.
+
+For full technical details, parameter reference, and workflow commands, see [.github/README.md](.github/README.md).
 
 ---
 

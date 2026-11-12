@@ -1,0 +1,72 @@
+name: Deployment Webhook & Trigger
+
+# Webhook / External event trigger:
+# Triggered via GitHub API repository_dispatch:
+# POST https://api.github.com/repos/{owner}/{repo}/dispatches
+# Body: {"event_type": "deploy_trigger", "client_payload": {"environment": "staging", "version": "latest"}}
+on:
+  repository_dispatch:
+    types: [deploy_trigger, webhook_event]
+
+  # Also supports manual execution with input parameters
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: 'staging'
+      deploy_notes:
+        description: 'Deployment note or reason'
+        required: false
+        type: string
+        default: 'Manual deploy trigger'
+
+jobs:
+  dispatch-handler:
+    name: Handle Webhook / Dispatch Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse Incoming Event Payload
+        id: payload_parser
+        run: |
+          # Differentiate between Webhook (repository_dispatch) and Manual (workflow_dispatch)
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            ENV="${{ github.event.client_payload.environment }}"
+            NOTES="${{ github.event.client_payload.notes || 'Triggered via Repository Webhook Dispatch' }}"
+          else
+            ENV="${{ inputs.environment }}"
+            NOTES="${{ inputs.deploy_notes }}"
+          fi
+
+          echo "target_env=${ENV:-staging}" >> $GITHUB_OUTPUT
+          echo "notes=$NOTES" >> $GITHUB_OUTPUT
+
+      - name: Execute Deployment Step
+        run: |
+          TARGET="${{ steps.payload_parser.outputs.target_env }}"
+          NOTES="${{ steps.payload_parser.outputs.notes }}"
+
+          # Workflow Command: Grouping and Notices
+          echo "::group::Deploying Application"
+          echo "::notice title=Deployment Triggered::Deploying to environment: $TARGET with note: $NOTES"
+          
+          # NOTE FOR USER / STARTER CONSUMER:
+          # Replace this block with your actual deployment logic:
+          # e.g., SSH into VPS, trigger Coolify/Portainer webhook, AWS ECS update, Kubernetes rollout:
+          # curl -X POST "${{ secrets.DEPLOY_WEBHOOK_URL }}" -d "{\"env\":\"$TARGET\"}"
+          echo "Simulating deployment pipeline for: $TARGET"
+          echo "::endgroup::"
+
+      - name: Post Deployment Webhook Notification
+        if: always()
+        run: |
+          # User can optionally configure a Slack / Discord / Custom Webhook secret to be notified
+          echo "### Deployment Event" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Environment:** \`${{ steps.payload_parser.outputs.target_env }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Notes:** ${{ steps.payload_parser.outputs.notes }}" >> $GITHUB_STEP_SUMMARY
+

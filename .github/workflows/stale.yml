@@ -1,0 +1,38 @@
+name: Clean Stale Issues & PRs
+
+# Schedule trigger: Runs daily at 00:00 UTC
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  # Manual trigger for testing
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Mark and Close Stale Items
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stale Issues & PRs Manager
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # Days before marking as stale
+          days-before-stale: 60
+          # Days of inactivity after stale before closing
+          days-before-close: 7
+          # Messages
+          stale-issue-message: 'This issue has been automatically marked as stale because it has not had recent activity. It will be closed in 7 days if no further activity occurs. Thank you for your contributions!'
+          stale-pr-message: 'This pull request has been automatically marked as stale due to inactivity. It will be closed in 7 days if no new updates are pushed.'
+          close-issue-message: 'This issue was closed because it has been inactive for 7 days since being marked as stale.'
+          close-pr-message: 'This pull request was closed due to inactivity.'
+          # Labels
+          stale-issue-label: 'status: stale'
+          stale-pr-label: 'status: stale'
+          # Exempt labels that should never be closed automatically
+          exempt-issue-labels: 'pinned,security,enhancement,bug'
+          exempt-pr-labels: 'pinned,work-in-progress,dependencies'
+

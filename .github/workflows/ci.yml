@@ -1,0 +1,159 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+  # Manual Trigger (workflow_dispatch)
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: 'Run E2E Tests with Docker Compose'
+        required: true
+        type: boolean
+        default: true
+      node_version:
+        description: 'Node.js version to test on'
+        required: false
+        type: choice
+        options:
+          - '22'
+          - '24'
+        default: '22'
+
+# Cancel running builds for previous commits on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-quality:
+    name: Code Quality & TypeCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version || '22' }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Check Formatting (Prettier)
+        run: |
+          echo "::group::Prettier Check"
+          npx prettier --check "src/**/*.ts" "test/**/*.ts"
+          echo "::endgroup::"
+
+      - name: Run Code Linter (oxlint)
+        run: |
+          echo "::group::Running Oxlint"
+          npm run lint
+          echo "::endgroup::"
+
+      - name: Run TypeScript typecheck
+        run: |
+          echo "::group::Running Typecheck"
+          npm run typecheck
+          echo "::endgroup::"
+
+      - name: Test Build Bundle
+        run: |
+          echo "::group::NestJS Build Test"
+          npm run build
+          echo "::endgroup::"
+
+  unit-tests:
+    name: Unit & Integration Tests (Matrix)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Starter projects benefit from matrix testing across active Node versions
+        node-version: [22]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run Unit Tests with Coverage
+        id: unit_tests
+        run: |
+          echo "::group::Running Tests with Coverage"
+          npm run test:cov
+          echo "::endgroup::"
+          
+          # GitHub Workflow Commands: Setting output and step summary
+          echo "coverage_status=completed" >> $GITHUB_OUTPUT
+          echo "### Unit Tests Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node Version:** ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Test Coverage Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-coverage-node-${{ matrix.node-version }}
+          path: coverage/
+          retention-days: 7
+
+  e2e-tests:
+    name: End-to-End Tests (Docker Stack)
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests]
+    # Run by default on push/PR, or allow toggling on manual trigger
+    if: github.event_name != 'workflow_dispatch' || inputs.run_e2e == true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version || '22' }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start Docker Test Infrastructure
+        run: |
+          # Workflow Command: Notice annotation
+          echo "::notice title=Docker Test Stack::Spinning up PostgreSQL, Redis, MinIO test containers..."
+          make docker-test-up
+
+      - name: Run E2E Test Suite (Vitest)
+        run: |
+          echo "::group::Vitest E2E Execution"
+          npx vitest run --config ./vitest.config.e2e.ts
+          echo "::endgroup::"
+
+      - name: Teardown Docker Test Environment
+        if: always()
+        run: |
+          make docker-test-down
+          echo "### Docker E2E Stack" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker test stack cleanly shut down and cleaned up." >> $GITHUB_STEP_SUMMARY

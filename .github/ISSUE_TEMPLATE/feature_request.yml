@@ -1,0 +1,24 @@
+name: Feature Request
+description: Suggest an idea or new feature for the starter template
+title: "[FEAT]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest an addition or enhancement for the NestJS Starter Template.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: Is your feature request related to a problem or a common architecture requirement?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution / Module
+      description: Describe what should be added (e.g. new NestJS module, provider, or tool).
+    validations:
+      required: true
+
