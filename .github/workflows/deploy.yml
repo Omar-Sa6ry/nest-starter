@@ -28,7 +28,7 @@ jobs:
     environment: production
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Example: Workflow command to mask sensitive parameters / secrets
       - name: Set deployment metadata & Mask variables
