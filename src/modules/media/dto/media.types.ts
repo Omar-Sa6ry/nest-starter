@@ -209,7 +209,8 @@ export class MediaResponse {
 }
 
 @ObjectType({
-  description: 'Standard General Response wrapper for presigned upload creation',
+  description:
+    'Standard General Response wrapper for presigned upload creation',
 })
 export class PresignedUploadResponse {
   @Field(() => Boolean)

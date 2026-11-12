@@ -291,7 +291,7 @@ This starter template includes production-grade GitHub Actions workflows, issue 
 
 | Workflow | Triggers | Description |
 | :--- | :--- | :--- |
-| `ci.yml` | `push`, `pull_request`, `workflow_dispatch` | Formats, lints (`oxlint`), typechecks, runs Vitest unit tests with coverage, and executes end-to-end tests against Docker test stack |
+| `ci.yml` | `push`, `pull_request`, `workflow_dispatch` | Runs linter (`oxlint`), typechecks, verifies build bundle, runs Vitest unit tests with coverage, and executes end-to-end tests against Docker test stack |
 | `docker-publish.yml` | Tag `v*.*.*`, `push` to `main`, `workflow_dispatch` | Builds multi-architecture production Docker image and publishes it to GitHub Container Registry (`ghcr.io`) |
 | `deploy.yml` | `workflow_dispatch` (Manual with inputs) | Standardized deployment workflow template supporting staging and production targets with dry-run support |
 | `deploy-webhook.yml` | `repository_dispatch`, `workflow_dispatch` | External webhook deployment listener triggerable via GitHub REST API or manual execution |

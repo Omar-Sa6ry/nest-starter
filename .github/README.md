@@ -26,7 +26,7 @@ All workflows follow standardized continuous integration, security auditing, mul
   - `workflow_dispatch` (Manual trigger with inputs: `run_e2e` [boolean], `node_version` [22 or 24])
 - **Concurrency**: Cancels redundant in-flight runs on the same branch or pull request.
 - **Jobs**:
-  - `code-quality`: Checks code formatting (`prettier --check`), runs Oxlint (`npm run lint`), checks TypeScript types (`npm run typecheck`), and tests the NestJS application build bundle (`npm run build`).
+  - `code-quality`: Runs Oxlint (`npm run lint`), checks TypeScript types (`npm run typecheck`), and tests the NestJS application build bundle (`npm run build`).
   - `unit-tests`: Executes Vitest unit tests with coverage collection (`npm run test:cov`) on a matrix strategy and uploads coverage artifacts (`actions/upload-artifact@v4`).
   - `e2e-tests`: Runs after `code-quality` and `unit-tests`. Initializes PostgreSQL, Redis, and MinIO test infrastructure via `make docker-test-up`, runs end-to-end tests (`vitest.config.e2e.ts`), and tears down the infrastructure via `make docker-test-down`.
 

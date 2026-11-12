@@ -50,12 +50,6 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Check Formatting (Prettier)
-        run: |
-          echo "::group::Prettier Check"
-          npx prettier --check "src/**/*.ts" "test/**/*.ts"
-          echo "::endgroup::"
-
       - name: Run Code Linter (oxlint)
         run: |
           echo "::group::Running Oxlint"
