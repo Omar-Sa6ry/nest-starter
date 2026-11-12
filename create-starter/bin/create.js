@@ -168,16 +168,19 @@ async function main() {
     console.log('Customizing project files...');
     await customizeProject(target, projectName);
 
-    console.log('Installing & updating dependencies (npm run update)...');
+    console.log('Updating dependencies (npm run update)...');
     try {
       await runCommand('npm', ['run', 'update'], target);
     } catch {
-      console.log('npm run update failed or ncu not available, running make install / npm install...');
-      try {
-        await runCommand('make', ['install'], target);
-      } catch {
-        await runCommand('npm', ['install', '--legacy-peer-deps'], target);
-      }
+      console.log('npm run update failed or ncu not available, continuing...');
+    }
+
+    console.log('Installing dependencies (make install)...');
+    try {
+      await runCommand('make', ['install'], target);
+    } catch {
+      console.log('make install failed or make is not available on this OS, falling back to npm install...');
+      await runCommand('npm', ['install', '--legacy-peer-deps'], target);
     }
   } catch (error) {
     await rm(target, { recursive: true, force: true });
