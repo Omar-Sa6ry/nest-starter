@@ -170,6 +170,21 @@ tasks:
       - npx vitest run --config ./vitest.config.e2e.ts
       - task: docker:test:down
 
+  check:
+    desc: Run fast checks (lint, typecheck, and unit tests without coverage threshold)
+    cmds:
+      - task: lint
+      - task: typecheck
+      - task: test
+
+  check:all:
+    desc: Run full CI test suite (lint, typecheck, unit tests with coverage, and e2e tests)
+    cmds:
+      - task: lint
+      - task: typecheck
+      - task: test:cov
+      - task: test:e2e
+
   # Docker: Development Environment
   docker:dev:up:
     desc: Spin up development stack (nginx, app, postgres, redis, prometheus, minio)
@@ -241,6 +256,11 @@ tasks:
       - docker compose --env-file {{.ENV_PROD}} {{.COMPOSE_PROD}} logs -f app
 
   # Dedicated Infrastructure Services
+  dev-deps:
+    desc: Spin up backing dev dependencies (postgres, redis, minio) in Docker
+    cmds:
+      - docker compose --env-file {{.ENV_DEV}} {{.COMPOSE_DEV}} up -d postgres redis minio minio-init
+
   db:up:
     desc: Start development PostgreSQL container only
     cmds:

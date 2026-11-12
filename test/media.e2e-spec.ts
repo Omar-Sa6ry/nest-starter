@@ -5,7 +5,6 @@ import { AppModule } from './../src/app.module.js';
 import { RoleGuard } from '../src/common/guard/role.guard.js';
 import { Role, Permission } from '../src/common/constant/enum.constant.js';
 import { S3StorageService } from '../src/modules/media/services/s3-storage.service.js';
-import { ApiAliasMiddleware } from '../src/common/middleware/api-alias.middleware.js';
 import { DataSource } from 'typeorm';
 import { User } from '../src/modules/user/entity/user.entity.js';
 import type { IAuthenticatedRequest, IAuthenticatedUser } from '../src/common/interfaces/IContext.interface.js';

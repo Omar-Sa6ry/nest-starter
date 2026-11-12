@@ -168,14 +168,16 @@ async function main() {
     console.log('Customizing project files...');
     await customizeProject(target, projectName);
 
-    console.log('Installing dependencies (make install)...');
+    console.log('Installing & updating dependencies (npm run update)...');
     try {
-    console.log('Updating dependencies (npm run update)...');
-    await runCommand('npm', ['run', 'update'], target);
-      await runCommand('make', ['install'], target);
+      await runCommand('npm', ['run', 'update'], target);
     } catch {
-      console.log('make not found or failed, falling back to npm install...');
-      await runCommand('npm', ['install', '--legacy-peer-deps'], target);
+      console.log('npm run update failed or ncu not available, running make install / npm install...');
+      try {
+        await runCommand('make', ['install'], target);
+      } catch {
+        await runCommand('npm', ['install', '--legacy-peer-deps'], target);
+      }
     }
   } catch (error) {
     await rm(target, { recursive: true, force: true });
@@ -185,15 +187,20 @@ async function main() {
   }
 
   console.log(`
-🎉 Project "${projectName}" created successfully!
+Project "${projectName}" created successfully!
 
-Recommended next steps (Best Scenario):
+Recommended next steps:
   1. cd ${projectName}
-  2. make dev-deps       -> Start PostgreSQL, Redis, and MinIO test/dev containers in Docker
-  3. make dev            -> Start NestJS application in development watch mode
+  2. Start backing services (PostgreSQL, Redis, MinIO):
+       Using Make:     make dev-deps
+       Using Taskfile: task dev-deps   (or task docker:dev:up)
+  3. Start NestJS application in watch mode:
+       Using Make:     make dev
+       Using Taskfile: task dev
+       Using NPM:      npm run start:dev
 
-Alternative:
-  make docker-dev-up     -> Run the entire application and services inside Docker
+Alternative (Full Docker Stack):
+  make docker-dev-up   or   task docker:dev:up
 `);
 }
 

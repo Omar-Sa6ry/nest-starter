@@ -4,7 +4,7 @@
 .DEFAULT_GOAL := help
 
 .PHONY: help install ncu update dev build deploy clean start start-dev start-debug start-prod \
-        lint format typecheck test test-watch test-cov test-debug test-e2e \
+        lint format typecheck test test-watch test-cov test-debug test-e2e check check-all ci-check \
         health health-ready metrics \
         typeorm-migration-create typeorm-migration-generate typeorm-migration-run typeorm-migration-revert \
         dev-deps docker-dev-up docker-dev-down docker-dev-logs docker-dev-rebuild \
@@ -90,6 +90,11 @@ test-debug:
 
 test-e2e:
 	npm run test:e2e
+
+# Quality and Test Suites
+check: lint typecheck test
+check-all: lint typecheck test-cov test-e2e
+ci-check: check-all
 
 # Migrations:
 typeorm-migration-create:
@@ -259,6 +264,8 @@ help:
 	@echo "  make test-cov      - Run unit tests with coverage (vitest run --coverage)"
 	@echo "  make test-debug    - Run unit tests in debug mode (vitest --inspect-brk)"
 	@echo "  make test-e2e      - Run e2e tests (brings up/down Docker test stack)"
+	@echo "  make check         - Run fast checks (lint + typecheck + unit test)"
+	@echo "  make check-all     - Run full suite (lint + typecheck + test-cov + test-e2e)"
 	@echo ""
 	@echo "  # Docker: Development:"
 	@echo "  make docker-dev-up       - Start dev stack (app + postgres + redis)"

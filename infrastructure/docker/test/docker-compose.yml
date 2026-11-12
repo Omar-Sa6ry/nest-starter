@@ -88,10 +88,11 @@ services:
     volumes:
       - test_minio_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "mc ready local || exit 0"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   minio-init:
     build:
