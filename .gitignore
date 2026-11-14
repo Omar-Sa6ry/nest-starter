@@ -16,13 +16,12 @@ yarn-error.log*
 lerna-debug.log*
 
 # Environment Configuration
-# Specific templates are versioned; staging/production secrets remain strictly uncommitted
 environments/*
 .env
 .env.*
 !.env.example
-!environments/.env.development
-!environments/.env.test
+environments/.env.development
+environments/.env.test
 environments/.env.staging
 environments/.env.production
 environments/.env.local*

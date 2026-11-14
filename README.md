@@ -1,6 +1,46 @@
 # NestJS Production-Ready Enterprise Starter Template
 
+[![CI Pipeline](https://github.com/Omar-Sa6ry/nest-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/Omar-Sa6ry/nest-starter/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/Omar-Sa6ry/nest-starter/actions/workflows/security-scan.yml/badge.svg)](https://github.com/Omar-Sa6ry/nest-starter/actions/workflows/security-scan.yml)
+[![Docker Publish](https://github.com/Omar-Sa6ry/nest-starter/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Omar-Sa6ry/nest-starter/actions/workflows/docker-publish.yml)
+[![Health Check Monitor](https://github.com/Omar-Sa6ry/nest-starter/actions/workflows/health-check.yml/badge.svg)](https://github.com/Omar-Sa6ry/nest-starter/actions/workflows/health-check.yml)
+[![npm version](https://img.shields.io/npm/v/@bts-soft/create-starter.svg?color=cb3837)](https://www.npmjs.com/package/@bts-soft/create-starter)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-%5E6.0.3-blue.svg)](https://www.typescriptlang.org/)
+[![NestJS](https://img.shields.io/badge/nestjs-v12-ea2845.svg)](https://nestjs.com/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 An enterprise-grade, highly scalable backend starter built with NestJS 12, Node.js 22+, Express 5, and TypeScript under native ECMAScript Modules (ESM). Engineered with clean architecture, robust security defaults, asynchronous queue processing, multi-channel notifications, a unified payments engine, S3/MinIO media processing, and isolated Docker Compose stacks for every development tier.
+
+---
+
+## Table of Contents
+
+- [Architectural Highlights](#architectural-highlights)
+- [System Architecture and Component Design](#system-architecture-and-component-design)
+- [Codebase Structure](#codebase-structure)
+- [Prerequisites](#prerequisites)
+- [Quick Start Guide](#quick-start-guide)
+  - [1. Initialize with CLI or Clone](#1-initialize-with-cli-or-clone)
+  - [2. Configure Environment Variables](#2-configure-environment-variables)
+  - [3. Spin Up Supporting Infrastructure](#3-spin-up-supporting-infrastructure)
+- [Core Domain Modules](#core-domain-modules)
+  - [1. Authentication and Authorization](#1-authentication-and-authorization)
+  - [2. User Management and Caching](#2-user-management-and-caching)
+  - [3. Media Storage and S3 Pipeline](#3-media-storage-and-s3-pipeline)
+  - [4. Realtime WebSockets Gateway](#4-realtime-websockets-gateway)
+  - [5. Multi-Channel Notifications and DLQ](#5-multi-channel-notifications-and-dlq)
+  - [6. Unified Payment Processing Engine](#6-unified-payment-processing-engine)
+- [GraphQL API Conventions](#graphql-api-conventions)
+- [Observability and Monitoring](#observability-and-monitoring)
+- [Testing Suite](#testing-suite)
+- [Makefile and Task Automation Reference](#makefile-and-task-automation-reference)
+- [Docker Environments Configuration](#docker-environments-configuration)
+- [GitHub Actions CI/CD and Automation](#github-actions-cicd-and-automation)
+- [Contributing](#contributing)
+- [Security Policy](#security-policy)
+- [License](#license)
 
 ---
 
@@ -9,17 +49,39 @@ An enterprise-grade, highly scalable backend starter built with NestJS 12, Node.
 - **Framework Runtime**: NestJS 12 executed on Node.js 22+ with Express 5 under native ECMAScript Modules (ESM).
 - **API Protocol**: Code-first GraphQL powered by Apollo Server with automatic schema generation, unified response envelopes, and secure REST webhook endpoints.
 - **Relational Persistence**: PostgreSQL managed via TypeORM with automated migrations, seeders, soft deletes, and composite indexing.
-- **Caching & State**: Redis layer for high-throughput caching, token blacklists, session storage, and rate limiting.
-- **Identity & Authorization**: JWT authentication with refresh token rotation, Google OAuth 2.0, and granular Role-Based Access Control (RBAC).
-- **Media Storage & Pipeline**: Amazon S3 / MinIO object storage with presigned multipart URLs, direct-to-cloud browser uploads, BullMQ background processing, and thumbnail/metadata generation.
+- **Caching and State**: Redis layer for high-throughput caching, token blacklists, session storage, and rate limiting.
+- **Identity and Authorization**: JWT authentication with refresh token rotation, Google OAuth 2.0, and granular Role-Based Access Control (RBAC).
+- **Media Storage and Pipeline**: Amazon S3 / MinIO object storage with presigned multipart URLs, direct-to-cloud browser uploads, BullMQ background processing, and thumbnail/metadata generation.
 - **Realtime Infrastructure**: Socket.IO WebSocket gateway with `@socket.io/redis-adapter` for transparent horizontal scaling across cluster nodes.
 - **Notification Engine**: Decoupled multi-channel dispatcher supporting Database persistence, Email (Nodemailer), SMS (Twilio), and Push Notifications (Firebase Admin).
 - **Dead Letter Queue (DLQ)**: BullMQ DLQ subsystem with GraphQL diagnostics, job inspection, manual replay, and bulk purge.
 - **Payment Processing**: Unified gateway supporting Stripe, PayPal, Paymob, and Fawry Pay with automated webhook signature validation, transaction inquiry, and refunds.
-- **Resilience & Security**: Sliding-window rate limiting, Helmet HTTP security headers, CORS protection, sensitive data redaction, and strict DTO validation.
+- **Resilience and Security**: Sliding-window rate limiting, Helmet HTTP security headers, CORS protection, sensitive data redaction, and strict DTO validation.
 - **Observability**: Prometheus metrics (`/metrics`), health probes (`/health`, `/health/ready`), and structured JSON logging with distributed correlation trace IDs.
 - **Internationalization**: Dual-language support (English and Arabic) via `nestjs-i18n`.
 - **Infrastructure Automation**: Docker Compose configurations for Development, Test, Staging, and Production environments, orchestrated via `make` or `task`.
+
+---
+
+## System Architecture and Component Design
+
+```text
+[ Browser / API Client / Mobile ]
+               │
+               ▼
+       [ Nginx Reverse Proxy ]
+               │
+    ┌──────────┴────────────────────────┐
+    │ HTTP / GraphQL / REST             │ WebSocket (Upgrade)
+    ▼                                   ▼
+[ NestJS Core API Engine ] ◄──────► [ Socket.IO Realtime Gateway ]
+    │                                   │
+    ├──────────┬──────────┬─────────────┤
+    ▼          ▼          ▼             ▼
+[PostgreSQL] [Redis]   [MinIO/S3]   [BullMQ Worker Service]
+(Data Tier)  (Cache &   (Object      (Background Video/Thumbnails,
+             Sessions)  Storage)      DLQ, Notifications, Outbox)
+```
 
 ---
 
@@ -27,7 +89,7 @@ An enterprise-grade, highly scalable backend starter built with NestJS 12, Node.
 
 ```text
 src/
-├── app.module.ts              # Root NestJS module wiring core configuration & providers
+├── app.module.ts              # Root NestJS module wiring core configuration and providers
 ├── app.resolver.ts            # Root application resolver (health ping, schema check)
 ├── main.ts                    # Bootstrap entrypoint configuring Helmet, CORS, and filters
 ├── common/                    # Reusable cross-cutting infrastructure
@@ -61,7 +123,7 @@ Before starting, verify that your environment satisfies the following requiremen
 
 - **Node.js**: `>= 22.0.0`
 - **npm**: `>= 10.0.0`
-- **Docker & Docker Compose**: Required for containerized databases, Redis, MinIO, and Prometheus
+- **Docker and Docker Compose**: Required for containerized databases, Redis, MinIO, and Prometheus
 - **GNU Make**: Recommended for executing build and lifecycle automation targets (available on Linux, macOS, and Windows via Git Bash, MSYS2, or WSL)
 
 ---
@@ -70,7 +132,7 @@ Before starting, verify that your environment satisfies the following requiremen
 
 ### 1. Initialize with CLI or Clone
 
-The recommended way to start is using `@bts-soft/create-starter`. It automatically downloads the template, sanitizes internal starter directories (`create-starter/` and `media-frontend/`), runs `make install`, and rebrands all configurations:
+The recommended way to start is using `@bts-soft/create-starter`. It automatically downloads the template, sanitizes internal starter directories (`create-starter/` and `media-frontend/`), runs `npm run update`, and rebrands all configurations:
 
 ```bash
 npm create @bts-soft/starter my-service
@@ -149,38 +211,38 @@ make docker-dev-logs
 
 ## Core Domain Modules
 
-### 1. Authentication & Authorization (`src/modules/auth/`)
+### 1. Authentication and Authorization
 
-- **JWT Token Pair**: Issues a short-lived Access Token (e.g., 15 minutes) and a long-lived Refresh Token (e.g., 7 days).
+- **JWT Token Pair**: Issues a short-lived Access Token (15 minutes) and a long-lived Refresh Token (7 days).
 - **Refresh Token Rotation**: Refresh tokens are single-use. Using a refresh token invalidates it and issues a new pair. If an expired or previously used refresh token is detected, the entire session family is revoked to prevent replay attacks.
 - **Session Blacklisting**: Active sessions and revoked tokens are tracked in Redis, enabling immediate token invalidation on logout or security events.
-- **RBAC & Permissions**: Enforces permissions at resolver and mutation levels using the `@Auth([Permission.VIEW_USER])` decorator.
+- **RBAC and Permissions**: Enforces permissions at resolver and mutation levels using the `@Auth([Permission.VIEW_USER])` decorator.
 - **Google OAuth 2.0**: Built-in OAuth flow verifying Google authorization tokens and automatically provisioning local user records.
 
-### 2. User Management (`src/modules/user/`)
+### 2. User Management and Caching
 
 - **Profile Management**: Profile retrieval, password updates, and avatar media assignment.
 - **Dual-Tier Caching**: Uses a cache-aside pattern with Redis (`user:<id>`) and automatic cache invalidation on profile updates. Dates stored in Redis are automatically revived into native `Date` objects upon retrieval to guarantee GraphQL schema compliance.
 - **Soft Deletion**: Uses TypeORM `@DeleteDateColumn` to retain audit trails while excluding deleted records from queries.
 
-### 3. Media Storage & Background Pipeline (`src/modules/media/`)
+### 3. Media Storage and S3 Pipeline
 
 - **Direct-to-Cloud Uploads**: Generates S3 presigned PUT URLs for single uploads and presigned part URLs for multipart uploads. File bytes stream directly from the client to S3/MinIO, bypassing the application server.
 - **Background Worker**: BullMQ processors validate upload completion, verify file MIME signatures, extract image metadata (width, height, format), and generate responsive variants/thumbnails.
 - **Storage Quota Enforcement**: Tracks storage consumption per user in Redis and PostgreSQL to enforce subscription tiers and limits.
 
-### 4. Realtime Gateway (`src/modules/realtime/`)
+### 4. Realtime WebSockets Gateway
 
 - **Horizontal Cluster Scaling**: Built on Socket.IO using `@socket.io/redis-adapter`. WebSocket events are transparently published across all running application instances.
-- **Heartbeat & Presence**: Tracks connected sockets, tracks active user presence, and automatically cleans up stale connections via periodic background sweeps.
+- **Heartbeat and Presence**: Tracks connected sockets, tracks active user presence, and automatically cleans up stale connections via periodic background sweeps.
 - **Security**: WebSocket connection guards enforce JWT authentication during initial handshake. Rate limiting guards protect against event flooding.
 
-### 5. Multi-Channel Notifications & DLQ (`src/modules/notification/`)
+### 5. Multi-Channel Notifications and DLQ
 
 - **Channels Supported**: Email (SMTP / Nodemailer), SMS (Twilio), Push Notifications (Firebase Cloud Messaging), and In-App Notifications (PostgreSQL / WebSockets).
 - **Dead Letter Queue (DLQ)**: Notifications that exhaust retry attempts are automatically moved to BullMQ dead-letter queues. Administrators can query DLQ failure stats (`getNotificationDlqStats`), inspect failed payloads (`getNotificationDlqFailedJobs`), replay individual jobs (`replayNotificationDlqJob`), or purge queues (`purgeNotificationDlq`) directly through GraphQL.
 
-### 6. Payment Engine (`src/modules/payment/`)
+### 6. Unified Payment Processing Engine
 
 - **Strategy Pattern Architecture**: Modular payment provider architecture supporting Stripe, PayPal, Paymob, and Fawry Pay under a unified interface.
 - **Webhook Handlers**: Validates incoming cryptographic signatures, records idempotent transaction logs in PostgreSQL, and dispatches domain events (`PaymentCompletedEvent`, `PaymentFailedEvent`).
@@ -223,24 +285,47 @@ Errors are intercepted globally and sanitized by `GraphQLExceptionFilter` and `f
 
 ---
 
-## Observability & Monitoring
+## Observability and Monitoring
 
 ### Health Checks
-- **Endpoint**: `GET /health` and `GET /health/ready`
+- **Endpoints**: `GET /health` and `GET /health/ready`
 - Evaluates PostgreSQL database connectivity, Redis responsiveness, and system memory headroom using `@nestjs/terminus`.
 
 ### Prometheus Metrics
 - **Endpoint**: `GET /metrics`
 - Exposes standard Node.js process metrics (heap usage, event loop lag, CPU utilization) and custom business counters (HTTP request durations, GraphQL query latencies, active WebSocket connections).
 
-### Logging
-- Structured JSON logging with correlation IDs (`x-correlation-id`). Every request generates or propagates a unique trace ID logged across all layers.
+### Structured Logging
+- Structured JSON logging with correlation IDs (`x-correlation-id`). Every request generates or propagates a unique trace ID logged across all layers with sensitive field redaction.
 
 ---
 
-## Makefile Automation Reference
+## Testing Suite
 
-The repository provides a complete `Makefile` covering all common development and operational tasks:
+The starter template includes comprehensive unit and integration testing powered by Vitest, with over 620 unit tests and end-to-end suites:
+
+```bash
+# Run unit tests
+make test
+
+# Run unit tests with code coverage report
+make test-cov
+
+# Run end-to-end tests against Docker test stack
+make test-e2e
+
+# Run complete quality assurance suite (lint + typecheck + unit tests + e2e)
+make check-all
+
+# Fast local checks (lint + typecheck + unit tests)
+make check
+```
+
+---
+
+## Makefile and Task Automation Reference
+
+The repository provides a complete `Makefile` and `Taskfile.yml` covering all common development and operational tasks:
 
 ```text
 Dependency Management:
@@ -255,7 +340,7 @@ Development:
   make build                    Build the TypeScript application to dist/
   make start-prod               Run compiled production build
 
-Testing & Quality:
+Testing and Quality:
   make typecheck                Run TypeScript compiler type check without emit
   make lint                     Run oxlint fast linter
   make format                   Format codebase with Prettier
@@ -263,6 +348,8 @@ Testing & Quality:
   make test-watch               Execute Vitest in interactive watch mode
   make test-cov                 Generate unit test coverage report
   make test-e2e                 Run end-to-end tests against ephemeral Docker containers
+  make check                    Run fast checks (lint + typecheck + unit tests)
+  make check-all                Run full CI suite (lint + typecheck + test-cov + test-e2e)
 
 Database Migrations:
   make typeorm-migration-create     Create empty migration file
@@ -276,14 +363,27 @@ Docker Stacks:
   make docker-dev-logs          Follow development application container logs
   make docker-dev-rebuild       Rebuild development application image
   make docker-staging-up        Spin up staging Docker Compose stack
+  make docker-staging-down      Stop staging Docker Compose stack
   make docker-prod-up           Spin up production Docker Compose stack
+  make docker-prod-down         Stop production Docker Compose stack
   make redis-cli                Open an interactive redis-cli session
   make redis-flush              Flush all keys in the development Redis instance
 ```
 
 ---
 
-## GitHub Actions & Workflows
+## Docker Environments Configuration
+
+The project maintains isolated Docker Compose configurations under `infrastructure/docker/`:
+
+- **Development (`infrastructure/docker/development/`)**: Hot-reloading application volume mounts, PostgreSQL, Redis, MinIO, Prometheus, and Alertmanager.
+- **Test (`infrastructure/docker/test/`)**: Ephemeral test databases and Redis instances used for automated Vitest E2E testing.
+- **Staging (`infrastructure/docker/staging/`)**: Production-mirrored environment with resource limits, isolated logging, and staging databases.
+- **Production (`infrastructure/docker/production/`)**: Multi-stage hardened Alpine container running non-root users (`appuser:appgroup`), optimized caching layers, and production proxies.
+
+---
+
+## GitHub Actions CI/CD and Automation
 
 This starter template includes production-grade GitHub Actions workflows, issue templates, and automated maintenance located in the `.github/` directory.
 
@@ -303,12 +403,24 @@ This starter template includes production-grade GitHub Actions workflows, issue 
 | `stale.yml` | Daily `schedule` (cron), `workflow_dispatch` | Marks and closes inactive issues and pull requests after 60 days of inactivity |
 | `test-cli.yml` | `push`, `pull_request` on `create-starter/**`, `workflow_dispatch` | Tests CLI scaffolding script syntax across Linux and Windows runners |
 
-### Repository Health & Automation Files
+### Repository Health and Automation Files
 
 - **Issue Templates (`.github/ISSUE_TEMPLATE/`)**: Includes YAML issue forms (`bug_report.yml` and `feature_request.yml`) for structured community feedback.
 - **Dependabot (`.github/dependabot.yml`)**: Automates weekly/monthly version bumps for npm packages (with grouped updates for `@nestjs`, Apollo, and types), GitHub Actions, and Docker base images.
 
 For full technical details, parameter reference, and workflow commands, see [.github/README.md](.github/README.md).
+
+---
+
+## Contributing
+
+We welcome community contributions. Please review our [Contributing Guidelines](CONTRIBUTING.md) for details on code standards, local verification using `make check-all`, and our Conventional Commits specification.
+
+---
+
+## Security Policy
+
+For security considerations and instructions on responsibly reporting vulnerabilities, please consult our [Security Policy](SECURITY.md).
 
 ---
 
