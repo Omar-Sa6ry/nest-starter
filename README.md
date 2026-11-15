@@ -408,7 +408,7 @@ This starter template includes production-grade GitHub Actions workflows, issue 
 - **Issue Templates (`.github/ISSUE_TEMPLATE/`)**: Includes YAML issue forms (`bug_report.yml` and `feature_request.yml`) for structured community feedback.
 - **Dependabot (`.github/dependabot.yml`)**: Automates weekly/monthly version bumps for npm packages (with grouped updates for `@nestjs`, Apollo, and types), GitHub Actions, and Docker base images.
 
-For full technical details, parameter reference, and workflow commands, see [.github/README.md](.github/README.md).
+For full technical details, parameter reference, and workflow commands, see [.github/WORKFLOWS.md](.github/WORKFLOWS.md).
 
 ---
 
